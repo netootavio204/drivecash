@@ -15,6 +15,8 @@ import '@fontsource/space-grotesk/700.css';
 // Estilos globais e tokens de design
 import './styles/index.css';
 
+import { AuthProvider } from './features/auth/AuthContext';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -27,7 +29,10 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AppRouter />
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 );
+

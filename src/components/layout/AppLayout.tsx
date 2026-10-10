@@ -3,6 +3,22 @@ import { BottomNav } from './BottomNav';
 import { SidebarNav } from './SidebarNav';
 import { Toaster } from '@/components/ui/Toast';
 import { APP_NAME } from '@/lib/config';
+import { useAuth } from '@/features/auth/AuthContext';
+import { LogOut } from 'lucide-react';
+
+function BotaoSairMobile() {
+  const { signOut } = useAuth();
+  return (
+    <button
+      onClick={() => signOut()}
+      title="Sair da conta"
+      className="p-1.5 text-texto-3 hover:text-brand-red rounded-lg transition-colors border border-line/40 bg-bg-2"
+    >
+      <LogOut className="size-4" />
+    </button>
+  );
+}
+
 
 export function AppLayout() {
   const location = useLocation();
@@ -18,15 +34,19 @@ export function AppLayout() {
             <img src="/logo-96.png" alt={APP_NAME} className="size-8 rounded-lg object-contain" />
             <span className="font-extrabold text-base tracking-tight texto-gradiente">{APP_NAME}</span>
           </div>
-          {!ehDesignSystem && (
-            <a
-              href="/design-system"
-              className="text-xs font-bold text-laranja-400 bg-laranja-500/10 px-2.5 py-1 rounded-full border border-laranja-500/20"
-            >
-              Design System
-            </a>
-          )}
+          <div className="flex items-center gap-2">
+            {!ehDesignSystem && (
+              <a
+                href="/design-system"
+                className="text-xs font-bold text-laranja-400 bg-laranja-500/10 px-2.5 py-1 rounded-full border border-laranja-500/20"
+              >
+                Design System
+              </a>
+            )}
+            <BotaoSairMobile />
+          </div>
         </header>
+
 
         <div className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
           <Outlet />

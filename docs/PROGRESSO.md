@@ -5,8 +5,8 @@
 ## Status das fases
 | Fase | Conteúdo | Status | Aprovada em |
 |---|---|---|---|
-| 1 | Fundação e Design System | 🔍 pronta para aprovação | — |
-| 2 | Banco de dados (Supabase) e Acesso | ⏳ não iniciada | — |
+| 1 | Fundação e Design System | ✅ concluída | 2026-10-10 |
+| 2 | Banco de dados (Supabase) e Acesso | 🔍 pronta para aprovação | — |
 | 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ⏳ não iniciada | — |
 | 4 | Fechamento do dia, Caixa Manutenção e Prioridades | ⏳ não iniciada | — |
 | 5 | Metas, medalhas, estrelas, fases e conquistas | ⏳ não iniciada | — |
@@ -14,44 +14,54 @@
 
 ## Como rodar o projeto
 ```bash
-# Rodar localmente
+# Rodar localmente o servidor Vite
 npm run dev
-# Abrir no navegador: http://localhost:5173 e http://localhost:5173/design-system
+# Abrir no navegador: http://localhost:5173
 
-# Rodar todos os testes unitários (18 testes)
+# Rodar todos os testes unitários (21 testes)
 npm test
 
-# Validação estrita de TypeScript
+# Validação estrita de TypeScript (0 erros)
 npm run typecheck
 
-# Validação de estilo e qualidade
+# Validação de estilo e qualidade ESLint (0 erros)
 npm run lint
 
-# Build de produção
+# Build de produção (gerado com sucesso)
 npm run build
 ```
 
 ## O que já existe
-- **Fundação Técnica:** React 18, Vite, TypeScript estrito, Tailwind CSS, React Router v7, TanStack Query, Zustand, Framer Motion, canvas-confetti, Lucide Icons, Vitest, Testing Library.
-- **Design System Completo:**
-  - Tokens de cor oficiais (vermelho neon #FF2D2D, laranja neon #FF7A00, positivo verde, negativo vermelho, superfícies escuras).
-  - Cantos bem arredondados (`--raio-sm: 14px`, `--raio-md: 18px`, `--raio-lg: 28px`).
-  - Brilho médio nos cartões e botões.
-  - Fontes locais empacotadas (Sora para títulos, Inter para textos, Space Grotesk com alinhamento tabular para moedas e números).
-  - Componentes base: Button (todas as variantes e estados), IconButton, FAB central giratório com gradiente, Card (Padrão, Destaque com borda em gradiente, Vidro translúcido), StatCard com sinalização de variação, Input com rótulo flutuante, MoneyInput com máscara estilo banco, NumericKeypad touch, Chip, Switch, Tabs acessíveis, BottomNav mobile, SidebarNav desktop, ProgressRing com marcos 🥉🥈🥇, ProgressBar, Skeleton com brilho reflexivo, EmptyState, ErrorState, Modal, ConfirmDialog com palavra de segurança, Toast com ação "Desfazer", Medalha SVG e celebrações com chuva de confetes.
-- **Identidade:** Logo oficial integrado em múltiplos tamanhos (`/logo.png`, `/logo-96.png`, `/logo-192.png`, `/logo-512.png`).
-- **Rotas e Navegação:** Todas as 12 rotas do PRD mapeadas e funcionais com `EmptyState` ou dashboard demonstrativo interativo.
-- **Vitrine `/design-system`:** Rota com todos os componentes e estados interativos lado a lado para teste no navegador.
-- **Testes Unitários:** 18 testes automatizados para `money.ts`, `datas.ts`, `MoneyInput` e `NumericKeypad`.
+- **Fundação & Design System (Fase 1):**
+  - React 18, Vite, TypeScript estrito, Tailwind CSS, React Router v7, TanStack Query, Zustand, Framer Motion, canvas-confetti, Lucide Icons, Vitest.
+  - Design System completo com tema escuro, gradientes vermelho/laranja neon, fontes empacotadas (Sora, Inter, Space Grotesk) e vitrine em `/design-system`.
+- **Banco de Dados & Supabase (Fase 2):**
+  - Scripts SQL versionados em `supabase/migrations/`:
+    - `0001_schema.sql`: Definição de tabelas (`profiles`, `configuracoes`, `veiculos`, `plataformas`, `categorias`, `caixas`, `dias_trabalho`, `lancamentos`, `transferencias`, `prioridades`, `metas`, `meta_ciclos`, `gamificacao_usuario`, `fases`, `conquistas_catalogo`, `auditoria`).
+    - `0002_rls.sql`: Políticas de segurança Row Level Security em todas as tabelas, garantindo isolamento total entre motoristas.
+    - `0003_funcoes.sql`: Views financeiras calculadas no banco (`vw_saldo_caixas`, `vw_resumo_dia`) e RPCs (`rpc_abrir_dia`, `rpc_fechar_dia`, `rpc_reabrir_dia`, `rpc_transferir`, `rpc_atualizar_metas`, `rpc_pagar_prioridade`).
+    - `0004_seeds.sql`: Catálogo completo de conquistas (Anexo C), fases e trigger `handle_new_user` para criação automática de caixas, configurações, plataformas e categorias no momento do cadastro.
+    - `FULL_SETUP.sql`: Script consolidado para rodar no SQL Editor do Supabase com um clique.
+  - Teste matemático SQL em `supabase/tests/anexo_a_test.sql` cobrindo o exemplo do Anexo A do PRD.
+- **Autenticação & Acesso (Fase 2):**
+  - Conexão configurada em `src/lib/supabase.ts` e tipos em `src/lib/database.types.ts`.
+  - Tratamento humanizado de erros em português em `src/lib/erros.ts`.
+  - Contexto de Autenticação (`AuthProvider`, `useAuth`) e guardiões de rotas (`ProtectedRoute`, `PublicOnlyRoute`, `OnboardingRoute`).
+  - Telas completas no visual do Meta Driver:
+    - Login (`/login`)
+    - Cadastro (`/cadastro`)
+    - Recuperação de senha (`/recuperar-senha`)
+    - Nova senha (`/nova-senha`)
+    - Onboarding interativo de 5 passos (`/onboarding`) com Nome, Carro, Plataformas, Saldo inicial e Reserva de manutenção com meta diária.
+    - Termos de Uso (`/termos`) e Política de Privacidade (`/privacidade`).
+    - Botão de logout no menu lateral e cabeçalho mobile.
+- **Testes Unitários:** 21 testes automatizados passando 100%.
 
 ## Decisões importantes
-- **Nome:** Meta Driver (atualizado em `config.ts`, `textos.ts`, `package.json` e `index.html`).
-- **Logo:** Imagem fornecida pelo dono do produto aplicada como identidade oficial.
-- **Tema:** Dark mode exclusivo com superfícies pretas profundas e gradiente assinatura vermelho→laranja.
-- **Repositório GitHub:** `netootavio204/drivecash` vinculado via branch `fase-1-fundacao`.
-
-## Pendências e dificuldades registradas
-_(nenhuma)_
+- **Segurança Supabase:** chaves públicas anon armazenadas em `.env.local` (fora do Git), service role key nunca gravada no código.
+- **Plataformas e Categorias flexíveis:** motorista tem padrões pré-carregados e pode criar novos itens a qualquer momento.
+- **Reserva de Manutenção:** valor diário sugerido de R$ 20,00, totalmente editável.
+- **Prioridades financeiras:** suporte a recorrência diária, semanal, mensal e anual.
 
 ## Próximo passo
-Aprovação do dono do produto para seguir para a **Fase 2 — Banco de dados (Supabase) e Acesso**.
+Aprovação do dono do produto para seguir para a **Fase 3 — Núcleo do Caixa (abrir dia, lançamentos, extrato)**.

@@ -11,10 +11,13 @@ import {
   Settings,
   Layers,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 import { APP_NAME } from '@/lib/config';
 import { textos } from '@/lib/textos';
 import { cn } from '@/lib/cn';
+import { useAuth } from '@/features/auth/AuthContext';
+
 
 export function SidebarNav() {
   const rotasPrincipais = [
@@ -64,12 +67,12 @@ export function SidebarNav() {
         ))}
       </nav>
 
-      <div className="pt-4 mt-auto border-t border-line/60">
+      <div className="pt-4 mt-auto border-t border-line/60 space-y-2">
         <NavLink
           to="/design-system"
           className={({ isActive }: { isActive: boolean }) =>
             cn(
-              'flex items-center gap-3 px-3.5 py-2.5 rounded-md text-xs font-bold transition-all',
+              'flex items-center gap-3 px-3.5 py-2 rounded-md text-xs font-bold transition-all',
               isActive
                 ? 'bg-laranja-500/20 text-laranja-400 border border-laranja-500/40'
                 : 'text-texto-3 hover:text-texto-1 hover:bg-bg-2',
@@ -79,7 +82,32 @@ export function SidebarNav() {
           <Layers className="size-4 shrink-0" />
           <span>🎨 Ver Design System</span>
         </NavLink>
+        <BotaoSair />
       </div>
     </aside>
   );
 }
+
+function BotaoSair() {
+  const { profile, signOut } = useAuth();
+  return (
+    <div className="flex items-center justify-between px-3 py-2 rounded-md bg-bg-2 border border-line/40">
+      <div className="flex items-center gap-2 overflow-hidden">
+        <div className="size-7 rounded-full bg-gradient-to-tr from-brand-red to-brand-orange flex items-center justify-center font-bold text-xs text-white shrink-0">
+          {profile?.nome ? profile.nome.charAt(0).toUpperCase() : 'M'}
+        </div>
+        <div className="truncate">
+          <p className="text-xs font-bold text-texto-1 truncate">{profile?.nome || 'Motorista'}</p>
+        </div>
+      </div>
+      <button
+        onClick={() => signOut()}
+        title="Sair da conta"
+        className="p-1.5 text-texto-3 hover:text-brand-red rounded transition-colors"
+      >
+        <LogOut className="size-4" />
+      </button>
+    </div>
+  );
+}
+
