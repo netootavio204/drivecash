@@ -11,20 +11,16 @@ import { OnboardingView } from '@/features/onboarding/OnboardingView';
 import { TermosView } from '@/pages/TermosView';
 import { PrivacidadeView } from '@/pages/PrivacidadeView';
 import { ProtectedRoute, PublicOnlyRoute, OnboardingRoute } from '@/features/auth/RouteGuards';
-import {
-  History,
-  BarChart3,
-  Car,
-  Clock,
-  Sparkles,
-} from 'lucide-react';
-import { textos } from '@/lib/textos';
+import { Clock, Sparkles } from 'lucide-react';
 import { CaixaView } from '@/features/caixa/CaixaView';
 import { CaixaManutencaoView } from '@/features/caixa/CaixaManutencaoView';
 import { PrioridadesView } from '@/features/prioridades/PrioridadesView';
 import { MetasView } from '@/features/metas/MetasView';
 import { ConquistasView } from '@/features/conquistas/ConquistasView';
 import { ConfiguracoesView } from '@/pages/ConfiguracoesView';
+import { HistoricoView } from '@/features/historico/HistoricoView';
+import { RelatoriosView } from '@/features/relatorios/RelatoriosView';
+import { VeiculoView } from '@/features/veiculo/VeiculoView';
 
 export const router = createBrowserRouter([
 
@@ -129,36 +125,15 @@ export const router = createBrowserRouter([
           },
           {
             path: 'historico',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.historico}
-                descricao="Calendário e lista completa de dias rodados e fechados."
-                icone={<History />}
-                faseTexto="Será ativado na Fase 6."
-              />
-            ),
+            element: <HistoricoView />,
           },
           {
             path: 'relatorios',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.relatorios}
-                descricao="Gráficos de lucro líquido, custo por km e rendimento por plataforma."
-                icone={<BarChart3 />}
-                faseTexto="Será ativado na Fase 6."
-              />
-            ),
+            element: <RelatoriosView />,
           },
           {
             path: 'veiculo',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.veiculo}
-                descricao="Quilometragem, média de consumo de combustível e alertas de troca de óleo."
-                icone={<Car />}
-                faseTexto="Será ativado na Fase 6."
-              />
-            ),
+            element: <VeiculoView />,
           },
           {
             path: 'configuracoes',

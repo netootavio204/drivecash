@@ -942,3 +942,53 @@ begin
   end loop;
 end $$;
 
+-- 12. Extensões da Fase 6: WhatsApp no perfil, Mensagens de Suporte e RPC Excluir Conta
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS whatsapp text,
+ADD COLUMN IF NOT EXISTS telefone text;
+
+CREATE TABLE IF NOT EXISTS public.suporte_mensagens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  assunto text NOT NULL,
+  mensagem text NOT NULL,
+  contato text,
+  status text NOT NULL DEFAULT 'pendente',
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.suporte_mensagens ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Motorista pode enviar mensagens de suporte" ON public.suporte_mensagens;
+CREATE POLICY "Motorista pode enviar mensagens de suporte"
+  ON public.suporte_mensagens
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Motorista pode visualizar suas mensagens de suporte" ON public.suporte_mensagens;
+CREATE POLICY "Motorista pode visualizar suas mensagens de suporte"
+  ON public.suporte_mensagens
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.rpc_excluir_conta()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'NAO_AUTENTICADO';
+  END IF;
+
+  DELETE FROM public.profiles WHERE id = v_user_id;
+  DELETE FROM auth.users WHERE id = v_user_id;
+
+  RETURN true;
+END;
+$$;
+
+

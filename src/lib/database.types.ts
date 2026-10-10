@@ -28,6 +28,8 @@ export interface Database {
           id: string;
           nome: string;
           avatar_url: string | null;
+          whatsapp: string | null;
+          telefone: string | null;
           fuso_horario: string;
           onboarding_concluido: boolean;
           criado_em: string;
@@ -37,6 +39,8 @@ export interface Database {
           id: string;
           nome: string;
           avatar_url?: string | null;
+          whatsapp?: string | null;
+          telefone?: string | null;
           fuso_horario?: string;
           onboarding_concluido?: boolean;
           criado_em?: string;
@@ -46,6 +50,8 @@ export interface Database {
           id?: string;
           nome?: string;
           avatar_url?: string | null;
+          whatsapp?: string | null;
+          telefone?: string | null;
           fuso_horario?: string;
           onboarding_concluido?: boolean;
           criado_em?: string;
@@ -722,6 +728,36 @@ export interface Database {
         };
         Relationships: [];
       };
+      suporte_mensagens: {
+        Row: {
+          id: string;
+          user_id: string;
+          assunto: string;
+          mensagem: string;
+          contato: string | null;
+          status: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          assunto: string;
+          mensagem: string;
+          contato?: string | null;
+          status?: string;
+          criado_em?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          assunto?: string;
+          mensagem?: string;
+          contato?: string | null;
+          status?: string;
+          criado_em?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       vw_saldo_caixas: {
@@ -815,6 +851,10 @@ export interface Database {
           o_titulo: string;
           o_estrelas: number;
         }[];
+      };
+      rpc_excluir_conta: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
     };
     Enums: {

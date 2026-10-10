@@ -9,8 +9,8 @@
 | 2 | Banco de dados (Supabase) e Acesso | ✅ aprovada | 2026-10-10 |
 | 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ✅ aprovada | 2026-10-10 |
 | 4 | Fechamento do dia, Caixa Manutenção e Prioridades | ✅ aprovada | 2026-10-10 |
-| 5 | Metas, medalhas, estrelas, fases e conquistas | ✅ concluída | 2026-10-10 |
-| 6 | Histórico, relatórios, configurações, PWA e publicação | ⏳ não iniciada | — |
+| 5 | Metas, medalhas, estrelas, fases e conquistas | ✅ aprovada | 2026-10-10 |
+| 6 | Histórico, relatórios, configurações, PWA e publicação | ✅ concluída | 2026-10-10 |
 
 ## Como rodar o projeto
 ```bash
@@ -18,7 +18,7 @@
 npm run dev
 # Abrir no navegador: http://localhost:5173
 
-# Rodar todos os testes unitários (38 testes automatizados)
+# Rodar todos os testes unitários (41 testes automatizados)
 npm test
 
 # Validação estrita de TypeScript (0 erros)
@@ -37,55 +37,46 @@ npm run build
   - Design System completo com tema escuro, gradientes vermelho/laranja neon, fontes empacotadas (Sora, Inter, Space Grotesk) e vitrine em `/design-system`.
 - **Banco de Dados & Supabase (Fase 2):**
   - Scripts SQL versionados em `supabase/migrations/`:
-    - `0001_schema.sql`: Definição de tabelas (`profiles`, `configuracoes`, `veiculos`, `plataformas`, `categorias`, `caixas`, `dias_trabalho`, `lancamentos`, `transferencias`, `prioridades`, `metas`, `meta_ciclos`, `gamificacao_usuario`, `fases`, `conquistas_catalogo`, `auditoria`).
-    - `0002_rls.sql`: Políticas de segurança Row Level Security em todas as tabelas.
-    - `0003_funcoes.sql`: Views e RPCs financeiras (`rpc_abrir_dia`, `rpc_fechar_dia`, `rpc_reabrir_dia`, `rpc_transferir`, `rpc_atualizar_metas`, `rpc_pagar_prioridade`).
-    - `0004_seeds.sql`: Catálogo de 22 conquistas e 7 fases.
-    - `0005_avaliar_conquistas.sql`: RPC `rpc_avaliar_conquistas` para avaliação automática de desbloqueios.
-    - `FULL_SETUP.sql`: Script consolidado para o SQL Editor do Supabase.
+    - `0001_schema.sql` até `0006_fase6_perfil_whatsapp_veiculo.sql`.
+    - Suporte a multiusuário via RLS, trigger automático de novos usuários e `FULL_SETUP.sql` consolidado.
 - **Autenticação & Acesso (Fase 2):**
-  - Telas completas: Login (`/login`), Cadastro (`/cadastro`), Recuperação de senha (`/recuperar-senha`), Nova senha (`/nova-senha`), Onboarding de 5 passos (`/onboarding`), Termos (`/termos`) e Privacidade (`/privacidade`).
+  - Telas completas: Login, Cadastro, Recuperar Senha, Nova Senha, Onboarding de 5 passos, Termos e Privacidade.
 - **Núcleo do Caixa (Fase 3):**
-  - Bater Ponto / Abrir Dia (`AbrirDiaSheet`), Entrada Rápida (`EntradaRapidaSheet`), Saída Rápida (`SaidaRapidaSheet`), Painel Início (`InicioPage`), Extrato (`CaixaView` em `/caixa`).
+  - Bater Ponto / Abrir Dia, Entrada Rápida, Saída Rápida, Painel Início com Caixa Atual em destaque e Extrato completo.
 - **Fechamento do Dia, Caixa Manutenção e Prioridades (Fase 4):**
-  - Fechar o Dia com conferência de dinheiro e depósito de manutenção (`FecharDiaSheet`).
-  - Reabertura do Dia (`rpc_reabrir_dia`).
-  - Reserva de Manutenção (`CaixaManutencaoView` em `/caixa/manutencao`).
-  - Gestão de Prioridades (`PrioridadesView` em `/prioridades`).
+  - Fechamento em 4 passos com conferência de dinheiro, Reserva de Manutenção protegida, Contas Prioritárias urgentes.
 - **Metas, Medalhas, Estrelas, Fases e Conquistas (Fase 5):**
-  - **Gestão de Metas (`MetasView` em `/metas`):**
-    - Abas por período: Diária, Semanal, Mensal.
-    - Marcos visuais: 🥉 Bronze (70%), 🥈 Prata (100%), 🥇 Ouro (130%) com prévia calculada em R$.
-    - Frases motivacionais dinâmicas indicando quanto falta para o próximo nível.
-    - Sugestão inteligente de Meta Mínima de Sobrevivência baseada nas Prioridades Pendentes (RN-25).
-    - Modal de criação e edição com validações.
-  - **Motor de Celebrações & Efeitos:**
-    - Fila assíncrona de animações (`src/lib/confete.ts`) com intensidade equilibrada de confetes para cada marco.
-    - Efeito sonoro suave sintetizado via Web Audio API nativo (`src/lib/som.ts`), sem dependência de arquivos externos.
-  - **Medalhas Neon SVG:**
-    - Componente SVG reutilizável (`Medalha.tsx`) em tamanhos `sm`, `md` e `lg` com brilho neon e gradientes dedicados para Bronze, Prata e Ouro.
-  - **Galeria de Conquistas & Fases (`ConquistasView` em `/conquistas`):**
-    - Header com Fase Atual (1 de 7), total de estrelas acumuladas ⭐ e barra de progresso até a próxima fase.
-    - Card com Sequência de dias ativos (Streak 🔥) e recorde histórico.
-    - Grade completa com as 22 conquistas do Anexo C: cards destacados com selo e data para desbloqueadas; cards escuros com cadeado e estrelas bônus para bloquear.
-    - Botão de verificação manual e modal comemorativo de subida de fase (`ModalMudancaFase.tsx`).
-  - **Integração na Tela Inicial (`InicioPage`):**
-    - Pílula de Sequência de dias ativos (🔥) e total de estrelas (⭐) no topo levando para `/conquistas`.
-    - Card compacto de Meta Diária com barra de progresso, percentual e medalha atual levando para `/metas`.
-  - **Configurações de Efeitos (`ConfiguracoesView` em `/configuracoes`):**
-    - Chaves para ativar/desativar efeitos sonoros e chuva de confetes com botão de teste imediato.
-    - Informações da conta e links legais.
-  - **Gatilhos automáticos em segundo plano:**
-    - Chamadas de reavaliação de metas e conquistas integradas nos hooks de lançamentos e fechamento do dia.
-  - **Testes Unitários da Gamificação (`src/lib/gamificacao.test.ts`):**
-    - 14 novos testes cobrindo cálculo de medalhas, multiplicadores de estrelas, meta mínima das prioridades (RN-25) e percentuais de conclusão. Total do projeto: 38 testes aprovados.
+  - Metas diárias, semanais e mensais com marcos 🥉 (70%), 🥈 (100%), 🥇 (130%).
+  - Medalhas neon, sintetizador Web Audio API (`som.ts`), confetes (`confete.ts`), 7 fases e catálogo de 22 conquistas.
+- **Histórico, Relatórios, Veículo, Configurações e PWA (Fase 6):**
+  - **Histórico de Dias (`/historico`):**
+    - Visão em Lista e Visão em Calendário Mensal com cores por lucro.
+    - Modal de Detalhe do Dia Fechado (somente leitura: resumo financeiro, horas, odômetro, lançamentos e observações).
+  - **Relatórios & Rentabilidade (`/relatorios`):**
+    - Filtros de período (7 Dias, Mês Atual, Ano Atual, Histórico Completo).
+    - Indicadores RN-16: Lucro líquido, Margem %, Ganho/hora, Lucro/km, Média diária.
+    - Gráfico visual de barras diárias nativo em SVG.
+    - Exportação CSV com UTF-8 BOM para Excel.
+    - Exportação em Markdown (.MD).
+    - Impressão nativa formatada para PDF com logo e cabeçalho corporativo.
+  - **Gestão do Veículo (`/veiculo`):**
+    - Cadastro e edição do carro ativo (modelo, placa, ano, odômetro atual).
+    - Alertas preventivos de manutenção (troca de óleo a cada 10.000 km, pastilhas a cada 30.000 km).
+  - **Configurações Completas (`/configuracoes`):**
+    - Edição de perfil com Nome e Celular / WhatsApp gravado no banco para futuras comunidades.
+    - Formulário de contato/suporte direto (`suporte_mensagens`).
+    - Backup completo JSON e importação/restauração de dados JSON.
+    - Exclusão segura de conta com confirmação "EXCLUIR" (RN-27).
+  - **PWA & Instalação:**
+    - `manifest.webmanifest` e `sw.js` com ícones neon instaláveis no celular.
+  - **Hospedagem & Vercel:**
+    - `vercel.json` configurado com reescritas SPA e cabeçalhos de proteção (HSTS, CSP, X-Frame-Options).
+  - **Testes Unitários:** 41 testes automatizados (100% de aprovação).
 
-## Decisões importantes
-- **Metas Iniciais:** Diária R$ 300,00, Semanal R$ 1.800,00, Mensal R$ 7.500,00 com liberdade para ajustar.
-- **Marcos das Medalhas:** 70% (Bronze), 100% (Prata), 130% (Ouro).
-- **Gamificação:** 7 Fases (Aprendiz, Estradeiro, Profissional, Veterano, Mestre do Volante, Elite, Lenda).
-- **Efeitos de Som:** Desligado por padrão, com opção de ligar nas configurações (Web Audio nativo).
-- **Semana de Trabalho:** Base de 6 dias por semana (25 dias/mês) para o cálculo da meta mínima de prioridades.
+## Como atualizar o app em produção
+1. Clone o repositório ou puxe as alterações mais recentes da `main`.
+2. Configure as variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` na Vercel.
+3. O deploy é automático a cada commit na branch `main`.
 
 ## Próximo passo
-Apresentação e validação da **Fase 5** com o usuário para autorização de início da **Fase 6 — Histórico, Relatórios, Configurações, PWA e Publicação**.
+Aprovação do dono do produto para finalização da Fase 6 e planejamento das **fases extras**.

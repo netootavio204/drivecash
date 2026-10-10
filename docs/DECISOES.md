@@ -72,6 +72,18 @@
 | 2026-10-10 | 5 | Meta mínima sugerida pelas contas: ativada com botão 'Usar como meta diária' | resposta do dono (★) |
 | 2026-10-10 | 5 | Dias de trabalho por semana: 6 dias | resposta do dono (★) |
 | 2026-10-10 | 5 | Sem dúvidas ou impedimentos | resposta do dono |
+| 2026-10-10 | 6 | Relatórios: foco em Lucro da Semana e do Mês, com indicadores de desempenho e rentabilidade | resposta do dono |
+| 2026-10-10 | 6 | Exportações: CSV (Excel), Markdown (.MD), PDF formatado com logo e gráficos, e Backup JSON completo (exportar, importar e restaurar) | resposta do dono |
+| 2026-10-10 | 6 | Gestão do Veículo: cadastro do carro (placa, modelo, ano, odômetro), custo por km e alertas de troca de óleo e manutenção | resposta do dono (★) |
+| 2026-10-10 | 6 | Publicação: Vercel com HTTPS e deploy automático | resposta do dono (★) |
+| 2026-10-10 | 6 | Domínio: endereço gratuito da Vercel por enquanto | resposta do dono (★) |
+| 2026-10-10 | 6 | Banco de dados: manter projeto Supabase atual | resposta do dono (★) |
+| 2026-10-10 | 6 | Público-alvo: qualquer motorista (multiusuário aberto com RLS) | resposta do dono (★) |
+| 2026-10-10 | 6 | Termos e Privacidade: manter modelos profissionais em português | resposta do dono (★) |
+| 2026-10-10 | 6 | Dados do motorista: salvar Nome e Celular (WhatsApp) no banco para futuros grupos de motoristas | resposta do dono |
+| 2026-10-10 | 6 | Identidade instalável (PWA): Meta Driver com ícones neon e tema escuro | resposta do dono (★) |
+| 2026-10-10 | 6 | Canal de suporte: formulário de contato integrado no app | resposta do dono |
+| 2026-10-10 | 6 | Fases extras planejadas para serem criadas após a aprovação da Fase 6 | resposta do dono |
 
 ## Mudanças em relação ao PRD
 
@@ -80,3 +92,5 @@
 | 2026-10-10 | 1 | Nome do app passa de "DriveCash" para **"Meta Driver"** (repositório continua `drivecash`) | escolha do dono |
 | 2026-10-10 | 2 | Categorias e Plataformas ganham suporte explícito a itens customizados por motorista (`user_id NULL` para do sistema ou `user_id` para do motorista) | solicitado pelo dono |
 | 2026-10-10 | 2 | Prioridades ganha suporte a recorrência diária explícita | solicitado pelo dono |
+| 2026-10-10 | 6 | Adicionado suporte a exportação em .MD, PDF com logo e backup/restauração JSON completo | solicitado pelo dono |
+| 2026-10-10 | 6 | Adicionada coluna de WhatsApp no perfil para formação futura de comunidade/grupos | solicitado pelo dono |
