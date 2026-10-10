@@ -5,9 +5,10 @@
 ## Status das fases
 | Fase | Conteúdo | Status | Aprovada em |
 |---|---|---|---|
-| 1 | Fundação e Design System | ✅ concluída | 2026-10-10 |
-| 2 | Banco de dados (Supabase) e Acesso | 🔍 pronta para aprovação | — |
-| 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ⏳ não iniciada | — |
+| 1 | Fundação e Design System | ✅ aprovada | 2026-10-10 |
+| 2 | Banco de dados (Supabase) e Acesso | ✅ aprovada | 2026-10-10 |
+| 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ⏳ em andamento | — |
+
 | 4 | Fechamento do dia, Caixa Manutenção e Prioridades | ⏳ não iniciada | — |
 | 5 | Metas, medalhas, estrelas, fases e conquistas | ⏳ não iniciada | — |
 | 6 | Histórico, relatórios, configurações, PWA e publicação | ⏳ não iniciada | — |
