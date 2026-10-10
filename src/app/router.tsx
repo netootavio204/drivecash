@@ -12,10 +12,8 @@ import { TermosView } from '@/pages/TermosView';
 import { PrivacidadeView } from '@/pages/PrivacidadeView';
 import { ProtectedRoute, PublicOnlyRoute, OnboardingRoute } from '@/features/auth/RouteGuards';
 import {
-  ShieldCheck,
   Target,
   Trophy,
-  CheckSquare,
   History,
   BarChart3,
   Car,
@@ -24,8 +22,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { textos } from '@/lib/textos';
-
 import { CaixaView } from '@/features/caixa/CaixaView';
+import { CaixaManutencaoView } from '@/features/caixa/CaixaManutencaoView';
+import { PrioridadesView } from '@/features/prioridades/PrioridadesView';
 
 export const router = createBrowserRouter([
 
@@ -92,14 +91,7 @@ export const router = createBrowserRouter([
 
           {
             path: 'caixa/manutencao',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.manutencao}
-                descricao="Reserva protegida para pneus, óleo, seguro e manutenções do carro."
-                icone={<ShieldCheck />}
-                faseTexto="Será ativado na Fase 4."
-              />
-            ),
+            element: <CaixaManutencaoView />,
           },
           {
             path: 'dia/abrir',
@@ -147,14 +139,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'prioridades',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.prioridades}
-                descricao="Contas e despesas essenciais organizadas por ordem de urgência."
-                icone={<CheckSquare />}
-                faseTexto="Será ativado na Fase 4."
-              />
-            ),
+            element: <PrioridadesView />,
           },
           {
             path: 'historico',

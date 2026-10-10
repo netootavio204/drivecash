@@ -1,20 +1,22 @@
 import { forwardRef, useId, type InputHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
-export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'placeholder'> & {
+export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   rotulo: string;
   erro?: string;
   ajuda?: string;
+  dica?: string;
 };
 
 /** Campo de texto com rótulo flutuante (PRD 9.5). */
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { rotulo, erro, ajuda, id, className, ...resto },
+  { rotulo, erro, ajuda, dica, id, className, placeholder, ...resto },
   ref,
 ) {
   const autoId = useId();
   const campoId = id ?? autoId;
-  const descId = erro || ajuda ? `${campoId}-desc` : undefined;
+  const textoAjuda = erro || ajuda || dica;
+  const descId = textoAjuda ? `${campoId}-desc` : undefined;
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
@@ -22,7 +24,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         <input
           ref={ref}
           id={campoId}
-          placeholder=" "
+          placeholder={placeholder || ' '}
           aria-invalid={erro ? true : undefined}
           aria-describedby={descId}
           className="campo peer"

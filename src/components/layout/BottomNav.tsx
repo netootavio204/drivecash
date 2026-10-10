@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Wallet, Target, MoreHorizontal, ArrowUpRight, ArrowDownLeft, Layers, ShieldCheck } from 'lucide-react';
+import { Home, Wallet, Target, MoreHorizontal, ArrowUpRight, ArrowDownLeft, Layers, ShieldCheck, CheckSquare } from 'lucide-react';
 import { Fab } from '@/components/ui/IconButton';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
@@ -17,9 +17,8 @@ export function BottomNav() {
   const [sheetSaidaAberta, setSheetSaidaAberta] = useState(false);
   const navigate = useNavigate();
 
-
   const rotasMais = [
-    { caminho: '/prioridades', rotulo: textos.nav.prioridades, icone: Target },
+    { caminho: '/prioridades', rotulo: textos.nav.prioridades, icone: CheckSquare },
     { caminho: '/caixa/manutencao', rotulo: textos.nav.manutencao, icone: ShieldCheck },
     { caminho: '/conquistas', rotulo: textos.nav.conquistas, icone: Target },
     { caminho: '/historico', rotulo: textos.nav.historico, icone: Wallet },

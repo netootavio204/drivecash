@@ -8,20 +8,28 @@ import {
   Flame,
   ChevronRight,
   AlertTriangle,
+  RotateCcw,
+  CheckSquare,
+  ShieldAlert,
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Estados';
 import { useAuth } from '@/features/auth/AuthContext';
-import { useDiaAtual, useResumoDia } from '@/features/dia/api';
+import { useDiaAtual, useResumoDia, useUltimoDiaFechado, useReabrirDia } from '@/features/dia/api';
 import { useSaldoPrincipal, useSaldoManutencao } from '@/features/caixa/api';
 import { useLancamentosDia } from '@/features/lancamentos/api';
+import { usePrioridades } from '@/features/prioridades/api';
 import { AbrirDiaSheet } from '@/features/dia/AbrirDiaSheet';
+import { FecharDiaSheet } from '@/features/dia/FecharDiaSheet';
 import { EntradaRapidaSheet } from '@/features/lancamentos/EntradaRapidaSheet';
 import { SaidaRapidaSheet } from '@/features/lancamentos/SaidaRapidaSheet';
 import { ListaLancamentosDia } from '@/features/lancamentos/ListaLancamentosDia';
 import { formatarMoeda } from '@/lib/money';
+import { formatarDataCurta } from '@/lib/datas';
+import { traduzirErro } from '@/lib/erros';
+import { toast } from '@/components/ui/Toast';
 import { textos } from '@/lib/textos';
 
 export function InicioPage() {
@@ -30,12 +38,17 @@ export function InicioPage() {
 
   const { data: diaAtual, isLoading: carregandoDia } = useDiaAtual();
   const { data: resumoDia } = useResumoDia(diaAtual?.id);
+  const { data: ultimoFechado } = useUltimoDiaFechado();
+  const { data: prioridades = [] } = usePrioridades();
+  const { mutateAsync: reabrirDia, isPending: reabrindoDia } = useReabrirDia();
+
   const { saldoCentavos: caixaAtual, isLoading: carregandoSaldo } = useSaldoPrincipal();
   const { saldoCentavos: saldoReserva } = useSaldoManutencao();
   const { data: lancamentos = [], isLoading: carregandoLancamentos } = useLancamentosDia(diaAtual?.id);
 
   // Sheets de controle
   const [sheetAbrirDia, setSheetAbrirDia] = useState<boolean>(false);
+  const [sheetFecharDia, setSheetFecharDia] = useState<boolean>(false);
   const [sheetEntrada, setSheetEntrada] = useState<boolean>(false);
   const [sheetSaida, setSheetSaida] = useState<boolean>(false);
 
@@ -193,13 +206,60 @@ export function InicioPage() {
             />
           </Card>
 
+          {/* Card de Próximas Contas / Prioridades */}
+          {prioridades.filter((p) => p.status === 'pendente').length > 0 && (
+            <Card className="p-4 bg-bg-2 border-line/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="size-4 text-laranja-400" />
+                  <h3 className="font-bold text-sm text-texto-1">Próximas Contas</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/prioridades')}
+                  className="text-xs font-bold text-laranja-400 hover:underline flex items-center gap-1"
+                >
+                  Ver todas <ChevronRight className="size-3.5" />
+                </button>
+              </div>
+
+              <div className="divide-y divide-line/40 text-xs">
+                {prioridades
+                  .filter((p) => p.status === 'pendente')
+                  .slice(0, 3)
+                  .map((conta) => {
+                    const hojeISO = new Date().toISOString().slice(0, 10);
+                    const vencida = conta.vencimento < hojeISO;
+                    return (
+                      <div key={conta.id} className="py-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {vencida && <ShieldAlert className="size-3.5 text-negativo" />}
+                          <span className={`font-semibold ${vencida ? 'text-negativo' : 'text-texto-1'}`}>
+                            {conta.titulo}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-texto-3">
+                            {formatarDataCurta(new Date(conta.vencimento + 'T12:00:00'))}
+                          </span>
+                          <span className="font-mono font-bold text-texto-1">
+                            {formatarMoeda(conta.valor_centavos)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </Card>
+          )}
+
           {/* Atalho para Fechar o Dia */}
           <div className="pt-2">
             <Button
               variante="secundario"
               tamanho="lg"
               bloco
-              onClick={() => navigate('/dia/fechar')}
+              onClick={() => setSheetFecharDia(true)}
             >
               FECHAR O DIA
             </Button>
@@ -207,35 +267,124 @@ export function InicioPage() {
         </>
       ) : (
         /* Estado com dia fechado / Pronto para Bater Ponto */
-        <Card variante="destaque" className="text-center py-10 space-y-4 shadow-neon">
-          <div className="size-16 rounded-2xl bg-gradient-to-tr from-vermelho-500/20 to-laranja-500/20 border border-laranja-500/40 grid place-items-center text-laranja-400 mx-auto">
-            <Clock className="size-8" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold text-texto-1">{textos.dia.abrirTitulo}</h2>
-            <p className="text-sm text-texto-2">
-              Seu caixa acumulado atual: <strong className="text-texto-1 numero">{formatarMoeda(caixaAtual)}</strong>
-            </p>
-          </div>
-          <div className="pt-2 max-w-sm mx-auto">
-            <Button
-              variante="primario"
-              tamanho="lg"
-              bloco
-              className="shadow-neon"
-              onClick={() => setSheetAbrirDia(true)}
-            >
-              {textos.dia.abrirBotao}
-            </Button>
-          </div>
-        </Card>
+        <div className="space-y-4">
+          <Card variante="destaque" className="text-center py-10 space-y-4 shadow-neon">
+            <div className="size-16 rounded-2xl bg-gradient-to-tr from-vermelho-500/20 to-laranja-500/20 border border-laranja-500/40 grid place-items-center text-laranja-400 mx-auto">
+              <Clock className="size-8" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-texto-1">{textos.dia.abrirTitulo}</h2>
+              <p className="text-sm text-texto-2">
+                Seu caixa acumulado atual: <strong className="text-texto-1 numero">{formatarMoeda(caixaAtual)}</strong>
+              </p>
+            </div>
+            <div className="pt-2 max-w-sm mx-auto">
+              <Button
+                variante="primario"
+                tamanho="lg"
+                bloco
+                className="shadow-neon"
+                onClick={() => setSheetAbrirDia(true)}
+              >
+                {textos.dia.abrirBotao}
+              </Button>
+            </div>
+          </Card>
+
+          {/* Opção de Reabrir Último Dia (se fechou recentemente) */}
+          {ultimoFechado && (
+            <Card className="p-4 bg-bg-2 border-line/60 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-texto-2 flex items-center gap-1.5">
+                  <RotateCcw className="size-3.5 text-laranja-400" />
+                  Último dia fechado ({ultimoFechado.data_referencia})
+                </span>
+                <p className="text-[11px] text-texto-3">
+                  Fechou por engano ou esqueceu uma corrida? Você pode reabrir.
+                </p>
+              </div>
+              <Button
+                variante="fantasma"
+                className="text-xs h-8 px-2.5"
+                carregando={reabrindoDia}
+                onClick={async () => {
+                  if (confirm(`Deseja reabrir o dia de ${ultimoFechado.data_referencia}?`)) {
+                    try {
+                      await reabrirDia(ultimoFechado.id);
+                      toast.sucesso('Dia reaberto com sucesso!');
+                    } catch (err) {
+                      toast.erro(traduzirErro(err));
+                    }
+                  }
+                }}
+              >
+                Reabrir Dia
+              </Button>
+            </Card>
+          )}
+
+          {/* Próximas Contas também visíveis com dia fechado */}
+          {prioridades.filter((p) => p.status === 'pendente').length > 0 && (
+            <Card className="p-4 bg-bg-2 border-line/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="size-4 text-laranja-400" />
+                  <h3 className="font-bold text-sm text-texto-1">Contas Pendentes</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/prioridades')}
+                  className="text-xs font-bold text-laranja-400 hover:underline flex items-center gap-1"
+                >
+                  Ver todas <ChevronRight className="size-3.5" />
+                </button>
+              </div>
+
+              <div className="divide-y divide-line/40 text-xs">
+                {prioridades
+                  .filter((p) => p.status === 'pendente')
+                  .slice(0, 3)
+                  .map((conta) => {
+                    const hojeISO = new Date().toISOString().slice(0, 10);
+                    const vencida = conta.vencimento < hojeISO;
+                    return (
+                      <div key={conta.id} className="py-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {vencida && <ShieldAlert className="size-3.5 text-negativo" />}
+                          <span className={`font-semibold ${vencida ? 'text-negativo' : 'text-texto-1'}`}>
+                            {conta.titulo}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-texto-3">
+                            {formatarDataCurta(new Date(conta.vencimento + 'T12:00:00'))}
+                          </span>
+                          <span className="font-mono font-bold text-texto-1">
+                            {formatarMoeda(conta.valor_centavos)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </Card>
+          )}
+        </div>
       )}
 
-      {/* Sheets Funcionais da Fase 3 */}
+      {/* Sheets Funcionais da Fase 3 e Fase 4 */}
       <AbrirDiaSheet
         aberto={sheetAbrirDia}
         aoFechar={() => setSheetAbrirDia(false)}
       />
+
+      {diaAtual && (
+        <FecharDiaSheet
+          aberto={sheetFecharDia}
+          aoFechar={() => setSheetFecharDia(false)}
+          diaAtual={diaAtual}
+        />
+      )}
 
       <EntradaRapidaSheet
         aberto={sheetEntrada}

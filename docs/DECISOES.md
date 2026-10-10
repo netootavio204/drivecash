@@ -48,6 +48,18 @@
 | 2026-10-10 | 3 | Km ao abrir o dia: opcional, com opção de pular | resposta do dono (★) |
 | 2026-10-10 | 3 | Aviso de caixa negativo: alerta discreto e amigável | resposta do dono (★) |
 | 2026-10-10 | 3 | Atalhos de modelos/repetição: digitação direta e limpa, sem modelos por enquanto | resposta do dono |
+| 2026-10-10 | 4 | Conferência de dinheiro em mãos: opcional, permitindo pular | resposta do dono (★) |
+| 2026-10-10 | 4 | Lote por plataforma: perguntar 'somar ou substituir' caso já haja lançamentos | resposta do dono (★) |
+| 2026-10-10 | 4 | Km final e horas no fechamento: sim, ambos opcionais | resposta do dono (★) |
+| 2026-10-10 | 4 | Observações do dia: campo de texto livre opcional | resposta do dono (★) |
+| 2026-10-10 | 4 | Depósito de manutenção: valor fixo editável (padrão R$ 20,00) | resposta do dono (★) |
+| 2026-10-10 | 4 | Pular reserva: livre sem cobrança ou pendência interna | resposta do dono (★) |
+| 2026-10-10 | 4 | Meta de manutenção: sim, com valor alvo (padrão R$ 1.500) e barra de progresso | resposta do dono (★) |
+| 2026-10-10 | 4 | Gastar manutenção: debita da reserva; se faltar, divide com o caixa principal | resposta do dono (★) |
+| 2026-10-10 | 4 | Sugestão de contas iniciais: sim, pré-sugerir contas comuns de motorista | resposta do dono (★) |
+| 2026-10-10 | 4 | Recorrências nas contas: diária, semanal, mensal e anual | resposta do dono (★) |
+| 2026-10-10 | 4 | Níveis de importância: Alta (🔴), Média (🟡) e Baixa (🟢) | resposta do dono (★) |
+| 2026-10-10 | 4 | Pagar conta: debita do Caixa do Dia e agenda a próxima ocorrência se recorrente | resposta do dono (★) |
 
 ## Mudanças em relação ao PRD
 

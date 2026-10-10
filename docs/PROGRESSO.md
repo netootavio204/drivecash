@@ -7,8 +7,8 @@
 |---|---|---|---|
 | 1 | Fundação e Design System | ✅ aprovada | 2026-10-10 |
 | 2 | Banco de dados (Supabase) e Acesso | ✅ aprovada | 2026-10-10 |
-| 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ✅ concluída | 2026-10-10 |
-| 4 | Fechamento do dia, Caixa Manutenção e Prioridades | ⏳ não iniciada | — |
+| 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ✅ aprovada | 2026-10-10 |
+| 4 | Fechamento do dia, Caixa Manutenção e Prioridades | ✅ concluída | 2026-10-10 |
 | 5 | Metas, medalhas, estrelas, fases e conquistas | ⏳ não iniciada | — |
 | 6 | Histórico, relatórios, configurações, PWA e publicação | ⏳ não iniciada | — |
 
@@ -81,15 +81,39 @@ npm run build
     - Filtros rápidos (Todos, Entradas, Saídas).
     - Histórico ordenado com badges coloridas por tipo de movimentação.
   - **Barra de Navegação Inferior (`BottomNav`):**
-    - Botão central de ação "+" com menu popup rápido para "Entrada" e "Saída".
-- **Testes Unitários:** 21 testes automatizados passando 100%.
+- **Fechamento do Dia, Caixa Manutenção e Prioridades (Fase 4):**
+  - **Fechar o Dia (`FecharDiaSheet`):**
+    - Stepper de 4 passos:
+      - Passo 1: Resumo do dia e atalho de lançamento por lote por plataforma (Uber, 99, etc.) com opção somar ou substituir.
+      - Passo 2: Odômetro final (cálculo de km rodados e rendimento R$/km), horas trabalhadas e conferência do dinheiro em mãos com feedback acolhedor de sobra/falta (Anexo B).
+      - Passo 3: Sugestão e ajuste de depósito na Reserva de Manutenção (padrão R$ 20,00 com botão "Pular hoje").
+      - Passo 4: Confirmação consolidada com sobra livre, saldo final que fica para amanhã, observações do dia e celebração de encerramento.
+    - RPC atômica `rpc_fechar_dia`.
+  - **Reabertura do Dia (`rpc_reabrir_dia`):**
+    - Opção de reabrir o último dia fechado na tela inicial em até 24h para correções rápidas, estornando conferência e transferências com segurança.
+  - **Reserva de Manutenção (`CaixaManutencaoView` em `/caixa/manutencao`):**
+    - Saldo protegido em destaque.
+    - Barra de progresso para a meta alvo (R$ 1.500,00) com estimativa de dias no ritmo atual de depósito.
+    - Modal de Aporte Avulso (transferir do principal para a manutenção via `rpc_transferir`).
+    - Modal de Gasto com Oficina / Peças com divisão inteligente (gasta o saldo da reserva e, se exceder, debita o resto do caixa principal automaticamente).
+    - Modal de Configuração de meta e depósito diário sugerido.
+  - **Gestão de Prioridades (`PrioridadesView` em `/prioridades`):**
+    - Cards de resumo: Total a pagar, Contas vencidas, Próximos vencimentos.
+    - Sugestão com 1 toque de contas típicas de motorista (Parcela do Carro, Seguro, Celular/Internet, Troca de Óleo, IPVA).
+    - Destaque visual vermelho com ⚠️ para contas vencidas e amarelo para contas que vencem hoje.
+    - Modal de criação e edição com nome, valor, data de vencimento, importância (Alta, Média, Baixa) e recorrência (Única, Diária, Semanal, Mensal, Anual).
+    - Ação "Pagar Conta" via RPC `rpc_pagar_prioridade`: debita a saída do Caixa do Dia e agenda a próxima ocorrência se a conta for recorrente.
+    - Card "Próximas Contas" na tela inicial mostrando as 3 contas mais urgentes.
+- **Testes Unitários:** 24 testes automatizados passando 100% (incluindo teste financeiro do Anexo A e regras de fechamento em `fechamento.test.ts`).
 
 ## Decisões importantes
 - **Segurança Supabase:** chaves públicas anon armazenadas em `.env.local` (fora do Git), service role key nunca gravada no código.
 - **Plataformas e Categorias flexíveis:** motorista tem padrões pré-carregados e pode criar novos itens a qualquer momento.
-- **Reserva de Manutenção:** valor diário sugerido de R$ 20,00, totalmente editável.
+- **Reserva de Manutenção:** valor diário sugerido de R$ 20,00, totalmente editável; meta alvo com barra de progresso.
 - **Turnos de madrugada:** lançamentos herdam a data de referência do dia aberto (RN-02).
 - **Lançamentos rápidos:** suporte a corrida única em 3 toques ou lote no final do dia.
+- **Conferência de caixa:** opcional no fechamento; se houver sobra ou falta, gera ajuste automático para igualar saldo físico e digital.
+- **Contas Prioritárias:** débito integrado no caixa e renovação de vencimento para contas recorrentes.
 
 ## Próximo passo
-Aprovação do dono do produto para seguir para a **Fase 4 — Fechamento do dia, Caixa Manutenção e Prioridades**.
+Aprovação do dono do produto para seguir para a **Fase 5 — Metas, medalhas, estrelas, fases e conquistas**.
