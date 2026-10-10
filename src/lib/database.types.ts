@@ -808,6 +808,14 @@ export interface Database {
           o_estrelas: number;
         }[];
       };
+      rpc_avaliar_conquistas: {
+        Args: Record<string, never>;
+        Returns: {
+          o_codigo: string;
+          o_titulo: string;
+          o_estrelas: number;
+        }[];
+      };
     };
     Enums: {
       tipo_caixa: TipoCaixa;

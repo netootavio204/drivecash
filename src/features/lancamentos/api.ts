@@ -153,6 +153,10 @@ export function useCriarLancamento() {
       queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
       queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
       queryClient.invalidateQueries({ queryKey: ['dia'] });
+      queryClient.invalidateQueries({ queryKey: ['metas'] });
+      queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
+      void supabase.rpc('rpc_atualizar_metas');
+      void supabase.rpc('rpc_avaliar_conquistas');
     },
   });
 }

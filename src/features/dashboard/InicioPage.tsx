@@ -14,13 +14,19 @@ import {
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Estados';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useDiaAtual, useResumoDia, useUltimoDiaFechado, useReabrirDia } from '@/features/dia/api';
 import { useSaldoPrincipal, useSaldoManutencao } from '@/features/caixa/api';
 import { useLancamentosDia } from '@/features/lancamentos/api';
 import { usePrioridades } from '@/features/prioridades/api';
+import {
+  useGamificacaoUsuario,
+  useMetas,
+  useCiclosMetas,
+} from '@/features/metas/api';
+import { Medalha } from '@/components/gamificacao/Medalha';
+import { Star, Target } from 'lucide-react';
 import { AbrirDiaSheet } from '@/features/dia/AbrirDiaSheet';
 import { FecharDiaSheet } from '@/features/dia/FecharDiaSheet';
 import { EntradaRapidaSheet } from '@/features/lancamentos/EntradaRapidaSheet';
@@ -45,6 +51,19 @@ export function InicioPage() {
   const { saldoCentavos: caixaAtual, isLoading: carregandoSaldo } = useSaldoPrincipal();
   const { saldoCentavos: saldoReserva } = useSaldoManutencao();
   const { data: lancamentos = [], isLoading: carregandoLancamentos } = useLancamentosDia(diaAtual?.id);
+
+  // Gamificação e Metas (Fase 5)
+  const { data: gamificacao } = useGamificacaoUsuario();
+  const { data: metas = [] } = useMetas();
+  const { data: ciclos = [] } = useCiclosMetas();
+
+  const metaDiaria = metas.find((m) => m.periodo === 'diaria');
+  const cicloDiario = metaDiaria ? ciclos.find((c) => c.meta_id === metaDiaria.id) : null;
+
+  const alvoDiario = metaDiaria?.valor_alvo ?? 30000;
+  const alcancadoDiario = cicloDiario?.valor_alcancado ?? 0;
+  const pctMetaDiaria = Math.min(150, Math.round((alcancadoDiario / Math.max(1, alvoDiario)) * 100));
+  const medalhaDiaria = cicloDiario?.nivel_atual ?? 'nenhum';
 
   // Sheets de controle
   const [sheetAbrirDia, setSheetAbrirDia] = useState<boolean>(false);
@@ -85,14 +104,28 @@ export function InicioPage() {
 
   return (
     <div className="space-y-6">
-      {/* Barra superior de status do motorista */}
+      {/* Barra superior de status do motorista & Gamificação */}
       <div className="flex items-center justify-between gap-3 p-3 rounded-md bg-bg-2 border border-line">
         <div className="flex items-center gap-2">
-          <Badge tom="marca" className="gap-1.5 py-1">
-            <Flame className="size-3.5 fill-laranja-500 text-laranja-500" />
-            <span>Ritmo diário</span>
-          </Badge>
-          <span className="text-sm font-semibold text-texto-2 hidden sm:inline">
+          <button
+            type="button"
+            onClick={() => navigate('/conquistas')}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-laranja-500/15 border border-laranja-500/30 text-laranja-400 hover:bg-laranja-500/25 transition-all text-xs font-black cursor-pointer shadow-sm"
+            title="Ver sequência e conquistas"
+          >
+            <Flame className="size-3.5 fill-laranja-500 text-laranja-500 animate-pulse" />
+            <span>{gamificacao?.sequencia_atual ?? 0} dias</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/conquistas')}
+            className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-all text-xs font-bold cursor-pointer"
+            title="Total de estrelas"
+          >
+            <Star className="size-3.5 fill-amber-400" />
+            <span>{gamificacao?.estrelas_totais ?? 0}</span>
+          </button>
+          <span className="text-xs font-semibold text-texto-2 hidden sm:inline ml-1">
             Olá, {profile?.nome || 'Motorista'}!
           </span>
         </div>
@@ -186,6 +219,41 @@ export function InicioPage() {
             <StatCard rotulo="Lucro Líquido" centavos={lucro} tom="marca" />
             <StatCard rotulo="Reserva Manut." centavos={saldoReserva} tom="neutro" />
           </div>
+
+          {/* Card Compacto de Meta Diária (Fase 5) */}
+          <Card
+            className="p-4 bg-bg-2 border-line/60 hover:border-laranja-500/40 transition-all cursor-pointer space-y-3"
+            onClick={() => navigate('/metas')}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="size-4 text-laranja-400" />
+                <h3 className="font-bold text-sm text-texto-1">Meta do Dia</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Medalha nivel={medalhaDiaria} tamanho="sm" />
+                <span className="text-xs font-bold text-laranja-400 hover:underline flex items-center gap-0.5">
+                  Ver detalhes <ChevronRight className="size-3.5" />
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-texto-3">
+                  Progresso: <strong className="text-texto-1 font-mono">{formatarMoeda(alcancadoDiario)}</strong> / {formatarMoeda(alvoDiario)}
+                </span>
+                <span className="font-mono font-bold text-laranja-400">{pctMetaDiaria}%</span>
+              </div>
+
+              <div className="h-2 w-full bg-bg-3 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-laranja-500 to-amber-400 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, pctMetaDiaria)}%` }}
+                />
+              </div>
+            </div>
+          </Card>
 
           {/* Lançamentos do dia */}
           <Card className="space-y-4">

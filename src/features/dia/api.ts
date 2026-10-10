@@ -160,6 +160,11 @@ export function useFecharDia() {
       queryClient.invalidateQueries({ queryKey: ['dia'] });
       queryClient.invalidateQueries({ queryKey: ['caixas'] });
       queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['metas'] });
+      queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
+      queryClient.invalidateQueries({ queryKey: ['conquistas'] });
+      void supabase.rpc('rpc_atualizar_metas');
+      void supabase.rpc('rpc_avaliar_conquistas');
     },
   });
 }

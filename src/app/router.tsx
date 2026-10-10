@@ -12,12 +12,9 @@ import { TermosView } from '@/pages/TermosView';
 import { PrivacidadeView } from '@/pages/PrivacidadeView';
 import { ProtectedRoute, PublicOnlyRoute, OnboardingRoute } from '@/features/auth/RouteGuards';
 import {
-  Target,
-  Trophy,
   History,
   BarChart3,
   Car,
-  Settings,
   Clock,
   Sparkles,
 } from 'lucide-react';
@@ -25,6 +22,9 @@ import { textos } from '@/lib/textos';
 import { CaixaView } from '@/features/caixa/CaixaView';
 import { CaixaManutencaoView } from '@/features/caixa/CaixaManutencaoView';
 import { PrioridadesView } from '@/features/prioridades/PrioridadesView';
+import { MetasView } from '@/features/metas/MetasView';
+import { ConquistasView } from '@/features/conquistas/ConquistasView';
+import { ConfiguracoesView } from '@/pages/ConfiguracoesView';
 
 export const router = createBrowserRouter([
 
@@ -117,25 +117,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'metas',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.metas}
-                descricao="Metas diárias, semanais e mensais com marcos de 70%, 100% e 130%."
-                icone={<Target />}
-                faseTexto="Será ativado na Fase 5."
-              />
-            ),
+            element: <MetasView />,
           },
           {
             path: 'conquistas',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.conquistas}
-                descricao="Medalhas, níveis, estrelas e histórico de fases desbloqueadas."
-                icone={<Trophy />}
-                faseTexto="Será ativado na Fase 5."
-              />
-            ),
+            element: <ConquistasView />,
           },
           {
             path: 'prioridades',
@@ -176,14 +162,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'configuracoes',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.configuracoes}
-                descricao="Perfil do motorista, plataformas ativas, categorias e exportação de dados."
-                icone={<Settings />}
-                faseTexto="Será ativado na Fase 6."
-              />
-            ),
+            element: <ConfiguracoesView />,
           },
           {
             path: 'design-system',

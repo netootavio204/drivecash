@@ -60,6 +60,18 @@
 | 2026-10-10 | 4 | Recorrências nas contas: diária, semanal, mensal e anual | resposta do dono (★) |
 | 2026-10-10 | 4 | Níveis de importância: Alta (🔴), Média (🟡) e Baixa (🟢) | resposta do dono (★) |
 | 2026-10-10 | 4 | Pagar conta: debita do Caixa do Dia e agenda a próxima ocorrência se recorrente | resposta do dono (★) |
+| 2026-10-10 | 5 | Valores das metas iniciais: Diária R$ 300, Semanal R$ 1.800, Mensal R$ 7.500 (totalmente editáveis) | resposta do dono |
+| 2026-10-10 | 5 | Métrica principal das metas: Receita Bruta (total gerado nos apps) | resposta do dono (★) |
+| 2026-10-10 | 5 | Níveis das medalhas: padrão 70% (Bronze), 100% (Prata) e 130% (Ouro) | resposta do dono (★) |
+| 2026-10-10 | 5 | Dias de folga fixos: nenhum fixo (flexível, ritmo livre) | resposta do dono (★) |
+| 2026-10-10 | 5 | Estilo das medalhas: Neon/Tecnológico com brilho | resposta do dono (★) |
+| 2026-10-10 | 5 | Confetes e serpentina: intensidade média equilibrada | resposta do dono (★) |
+| 2026-10-10 | 5 | Efeito sonoro: desligado por padrão, com chave para ligar/desligar | resposta do dono (★) |
+| 2026-10-10 | 5 | Nomes das fases: Aprendiz, Estradeiro, Profissional, Veterano, Mestre do Volante, Elite, Lenda | resposta do dono (★) |
+| 2026-10-10 | 5 | Catálogo de conquistas: manter todas as 22 conquistas padrão do Anexo C | resposta do dono (★) |
+| 2026-10-10 | 5 | Meta mínima sugerida pelas contas: ativada com botão 'Usar como meta diária' | resposta do dono (★) |
+| 2026-10-10 | 5 | Dias de trabalho por semana: 6 dias | resposta do dono (★) |
+| 2026-10-10 | 5 | Sem dúvidas ou impedimentos | resposta do dono |
 
 ## Mudanças em relação ao PRD
 
