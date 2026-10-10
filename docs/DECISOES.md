@@ -40,8 +40,17 @@
 | 2026-10-10 | 2 | Prioridades: obrigações financeiras por ordem de urgência e vencimento | resposta do dono |
 | 2026-10-10 | 2 | Fuso horário: Brasília (`America/Sao_Paulo`) | resposta do dono |
 | 2026-10-10 | 2 | Reserva de manutenção: valor fixo (sugestão R$ 20,00) com valor livremente ajustável | resposta do dono |
+| 2026-10-10 | 3 | Rotina de lançamento: flexível (corrida a corrida e em lote no fim do dia) | resposta do dono (★) |
+| 2026-10-10 | 3 | Turno de madrugada: suporte a virada de meia-noite mantendo a data do dia aberto | resposta do dono (★) |
+| 2026-10-10 | 3 | Plataforma preferencial: 99 inicial com memorização da última usada e reordenação | resposta do dono |
+| 2026-10-10 | 3 | Valores rápidos em 1 toque: R$ 5, R$ 10, R$ 20, R$ 50 e R$ 100 | resposta do dono (★) |
+| 2026-10-10 | 3 | Destaque principal do Início: Caixa Atual com valor em maior destaque | resposta do dono (★) |
+| 2026-10-10 | 3 | Km ao abrir o dia: opcional, com opção de pular | resposta do dono (★) |
+| 2026-10-10 | 3 | Aviso de caixa negativo: alerta discreto e amigável | resposta do dono (★) |
+| 2026-10-10 | 3 | Atalhos de modelos/repetição: digitação direta e limpa, sem modelos por enquanto | resposta do dono |
 
 ## Mudanças em relação ao PRD
+
 | Data | Fase | O que mudou | Motivo |
 |---|---|---|---|
 | 2026-10-10 | 1 | Nome do app passa de "DriveCash" para **"Meta Driver"** (repositório continua `drivecash`) | escolha do dono |

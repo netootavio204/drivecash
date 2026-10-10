@@ -7,10 +7,16 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { textos } from '@/lib/textos';
 
+import { EntradaRapidaSheet } from '@/features/lancamentos/EntradaRapidaSheet';
+import { SaidaRapidaSheet } from '@/features/lancamentos/SaidaRapidaSheet';
+
 export function BottomNav() {
   const [menuAcoesAberto, setMenuAcoesAberto] = useState(false);
   const [menuMaisAberto, setMenuMaisAberto] = useState(false);
+  const [sheetEntradaAberta, setSheetEntradaAberta] = useState(false);
+  const [sheetSaidaAberta, setSheetSaidaAberta] = useState(false);
   const navigate = useNavigate();
+
 
   const rotasMais = [
     { caminho: '/prioridades', rotulo: textos.nav.prioridades, icone: Target },
@@ -88,36 +94,37 @@ export function BottomNav() {
         </div>
       </nav>
 
-      {/* Sheet de Lançamento Rápido (+) */}
+      {/* Sheet de Escolha (+) */}
       <Sheet
         aberto={menuAcoesAberto}
         aoFechar={() => setMenuAcoesAberto(false)}
-        titulo="Novo lançamento"
+        titulo="Novo lançamento rápido"
+        descricao="Escolha o que deseja registrar agora:"
       >
         <div className="grid gap-3 py-2">
           <Button
             variante="primario"
             tamanho="lg"
             bloco
-            icone={<ArrowUpRight className="text-positivo" />}
+            icone={<ArrowUpRight className="text-white" />}
             onClick={() => {
               setMenuAcoesAberto(false);
-              navigate('/caixa?acao=entrada');
+              setSheetEntradaAberta(true);
             }}
           >
-            {textos.nav.entrada} (Corrida, Gorjeta, Bônus)
+            + Corrida / Entrada
           </Button>
           <Button
-            variante="secundario"
+            variante="perigo"
             tamanho="lg"
             bloco
-            icone={<ArrowDownLeft className="text-negativo" />}
+            icone={<ArrowDownLeft className="text-white" />}
             onClick={() => {
               setMenuAcoesAberto(false);
-              navigate('/caixa?acao=saida');
+              setSheetSaidaAberta(true);
             }}
           >
-            {textos.nav.saida} (Combustível, Refeição, etc.)
+            − Despesa / Saída
           </Button>
           <Button
             variante="fantasma"
@@ -126,13 +133,24 @@ export function BottomNav() {
             icone={<Layers />}
             onClick={() => {
               setMenuAcoesAberto(false);
-              navigate('/dia/fechar');
+              navigate('/caixa');
             }}
           >
-            {textos.nav.lote}
+            Ver Extrato Completo
           </Button>
         </div>
       </Sheet>
+
+      <EntradaRapidaSheet
+        aberto={sheetEntradaAberta}
+        aoFechar={() => setSheetEntradaAberta(false)}
+      />
+
+      <SaidaRapidaSheet
+        aberto={sheetSaidaAberta}
+        aoFechar={() => setSheetSaidaAberta(false)}
+      />
+
 
       {/* Sheet de Mais opções */}
       <Sheet

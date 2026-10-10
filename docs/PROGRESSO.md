@@ -7,8 +7,7 @@
 |---|---|---|---|
 | 1 | Fundação e Design System | ✅ aprovada | 2026-10-10 |
 | 2 | Banco de dados (Supabase) e Acesso | ✅ aprovada | 2026-10-10 |
-| 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ⏳ em andamento | — |
-
+| 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ✅ concluída | 2026-10-10 |
 | 4 | Fechamento do dia, Caixa Manutenção e Prioridades | ⏳ não iniciada | — |
 | 5 | Metas, medalhas, estrelas, fases e conquistas | ⏳ não iniciada | — |
 | 6 | Histórico, relatórios, configurações, PWA e publicação | ⏳ não iniciada | — |
@@ -56,13 +55,41 @@ npm run build
     - Onboarding interativo de 5 passos (`/onboarding`) com Nome, Carro, Plataformas, Saldo inicial e Reserva de manutenção com meta diária.
     - Termos de Uso (`/termos`) e Política de Privacidade (`/privacidade`).
     - Botão de logout no menu lateral e cabeçalho mobile.
+- **Núcleo do Caixa (Fase 3):**
+  - **Bater Ponto / Abrir Dia (`AbrirDiaSheet`):**
+    - Exibe saldo acumulado do dia anterior com opção de conferir ou ajustar.
+    - Quilometragem inicial opcional com botão de pular.
+    - RPC `rpc_abrir_dia` integrada com persistência em banco.
+    - Efeito de celebração com confetti ao iniciar a jornada.
+  - **Entrada Rápida (`EntradaRapidaSheet`):**
+    - `MoneyInput` com botões de 1 toque (+R$ 5, +R$ 10, +R$ 20, +R$ 50, +R$ 100).
+    - Chips de plataformas com foco inicial na 99 e memorização no `localStorage`.
+    - Stepper rápido de quantidade de corridas (1 toque para corrida única ou lote).
+    - Toast de confirmação com ação "Desfazer" de 6 segundos.
+  - **Saída Rápida (`SaidaRapidaSheet`):**
+    - Grade visual de categorias (Combustível, Alimentação, Estacionamento, etc.).
+    - Seletor de caixa de origem (Caixa do Dia vs. Reserva de Manutenção).
+    - Validação de saldo da reserva de manutenção (RN-09).
+    - Alerta discreto quando o caixa fica negativo.
+  - **Painel Início (`InicioPage`):**
+    - Card de Bater Ponto quando não há dia aberto.
+    - Caixa Atual em destaque no topo quando o dia está aberto.
+    - Indicadores em tempo real: Total Recebido, Total Gasto, Saldo Líquido, Reserva de Manutenção.
+    - Lista de lançamentos do dia com ações de editar (modal) e excluir (com desfazer).
+  - **Extrato do Caixa (`CaixaView` em `/caixa`):**
+    - Alternância entre Caixa do Dia e Reserva de Manutenção.
+    - Filtros rápidos (Todos, Entradas, Saídas).
+    - Histórico ordenado com badges coloridas por tipo de movimentação.
+  - **Barra de Navegação Inferior (`BottomNav`):**
+    - Botão central de ação "+" com menu popup rápido para "Entrada" e "Saída".
 - **Testes Unitários:** 21 testes automatizados passando 100%.
 
 ## Decisões importantes
 - **Segurança Supabase:** chaves públicas anon armazenadas em `.env.local` (fora do Git), service role key nunca gravada no código.
 - **Plataformas e Categorias flexíveis:** motorista tem padrões pré-carregados e pode criar novos itens a qualquer momento.
 - **Reserva de Manutenção:** valor diário sugerido de R$ 20,00, totalmente editável.
-- **Prioridades financeiras:** suporte a recorrência diária, semanal, mensal e anual.
+- **Turnos de madrugada:** lançamentos herdam a data de referência do dia aberto (RN-02).
+- **Lançamentos rápidos:** suporte a corrida única em 3 toques ou lote no final do dia.
 
 ## Próximo passo
-Aprovação do dono do produto para seguir para a **Fase 3 — Núcleo do Caixa (abrir dia, lançamentos, extrato)**.
+Aprovação do dono do produto para seguir para a **Fase 4 — Fechamento do dia, Caixa Manutenção e Prioridades**.

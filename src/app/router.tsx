@@ -12,7 +12,6 @@ import { TermosView } from '@/pages/TermosView';
 import { PrivacidadeView } from '@/pages/PrivacidadeView';
 import { ProtectedRoute, PublicOnlyRoute, OnboardingRoute } from '@/features/auth/RouteGuards';
 import {
-  Wallet,
   ShieldCheck,
   Target,
   Trophy,
@@ -26,7 +25,10 @@ import {
 } from 'lucide-react';
 import { textos } from '@/lib/textos';
 
+import { CaixaView } from '@/features/caixa/CaixaView';
+
 export const router = createBrowserRouter([
+
   // Rotas Públicas (Apenas para não autenticados)
   {
     element: <PublicOnlyRoute />,
@@ -85,15 +87,9 @@ export const router = createBrowserRouter([
           },
           {
             path: 'caixa',
-            element: (
-              <PaginaPlaceholder
-                titulo={textos.nav.caixa}
-                descricao="Extrato completo de entradas, saídas e saldo acumulado."
-                icone={<Wallet />}
-                faseTexto="Será ativado na Fase 3 com o fluxo do caixa."
-              />
-            ),
+            element: <CaixaView />,
           },
+
           {
             path: 'caixa/manutencao',
             element: (

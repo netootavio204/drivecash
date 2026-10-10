@@ -45,6 +45,16 @@ export function useToast() {
   return useToastStore((s) => s.mostrar);
 }
 
+export const toast = {
+  sucesso: (mensagem: string, opcoes?: { acao?: { rotulo: string; aoClicar: () => void } }) =>
+    useToastStore.getState().mostrar({ mensagem, tipo: 'sucesso', ...opcoes }),
+  erro: (mensagem: string) =>
+    useToastStore.getState().mostrar({ mensagem, tipo: 'erro' }),
+  info: (mensagem: string, opcoes?: { acao?: { rotulo: string; aoClicar: () => void } }) =>
+    useToastStore.getState().mostrar({ mensagem, tipo: 'info', ...opcoes }),
+};
+
+
 const ICONES = {
   sucesso: <CheckCircle2 aria-hidden className="size-5 text-positivo" />,
   erro: <AlertCircle aria-hidden className="size-5 text-negativo" />,

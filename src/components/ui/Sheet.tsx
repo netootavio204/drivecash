@@ -9,13 +9,14 @@ type SheetProps = {
   aberto: boolean;
   aoFechar: () => void;
   titulo: string;
+  descricao?: string;
   children: ReactNode;
   rodape?: ReactNode;
   className?: string;
 };
 
-/** Bottom sheet com arraste para fechar (mobile) — no desktop vira painel central. */
-export function Sheet({ aberto, aoFechar, titulo, children, rodape, className }: SheetProps) {
+
+export function Sheet({ aberto, aoFechar, titulo, descricao, children, rodape, className }: SheetProps) {
   const ref = useRef<HTMLDivElement>(null);
   const tituloId = useId();
   useSobreposicao(aberto, aoFechar, ref);
@@ -60,19 +61,23 @@ export function Sheet({ aberto, aoFechar, titulo, children, rodape, className }:
             <div className="flex justify-center pt-3 lg:hidden" aria-hidden>
               <span className="h-1.5 w-12 rounded-full bg-line" />
             </div>
-            <header className="flex items-center justify-between gap-3 px-5 pt-3 pb-2">
-              <h2 id={tituloId} className="text-lg font-bold">
-                {titulo}
-              </h2>
+            <header className="flex items-start justify-between gap-3 px-5 pt-3 pb-2">
+              <div>
+                <h2 id={tituloId} className="text-lg font-bold">
+                  {titulo}
+                </h2>
+                {descricao && <p className="text-xs text-texto-3 mt-0.5">{descricao}</p>}
+              </div>
               <button
                 type="button"
                 onClick={aoFechar}
                 aria-label="Fechar"
-                className="grid size-11 place-items-center rounded-full text-texto-2 hover:bg-white/5 hover:text-texto-1"
+                className="grid size-11 place-items-center rounded-full text-texto-2 hover:bg-white/5 hover:text-texto-1 shrink-0"
               >
                 <X aria-hidden className="size-5" />
               </button>
             </header>
+
             <div className="flex-1 overflow-y-auto px-5 pb-4">{children}</div>
             {rodape && (
               <footer className="px-5 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-line/60">

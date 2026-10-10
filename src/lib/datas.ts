@@ -18,6 +18,11 @@ export function dataReferencia(instante: Date = new Date(), fuso: string = FUSO_
   return formatInTimeZone(instante, fuso, 'yyyy-MM-dd');
 }
 
+/** Atalho para data local de hoje (yyyy-MM-dd). */
+export function dataHojeISO(): string {
+  return dataReferencia();
+}
+
 /** Formata uma data no fuso (padrão: dd/MM/yyyy). */
 export function formatarData(
   instante: Date,

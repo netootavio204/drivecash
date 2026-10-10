@@ -10,6 +10,7 @@ type ModalProps = {
   aberto: boolean;
   aoFechar: () => void;
   titulo: string;
+  descricao?: string;
   children: ReactNode;
   rodape?: ReactNode;
   role?: 'dialog' | 'alertdialog';
@@ -20,6 +21,7 @@ export function Modal({
   aberto,
   aoFechar,
   titulo,
+  descricao,
   children,
   rodape,
   role = 'dialog',
@@ -69,6 +71,7 @@ export function Modal({
                 <X aria-hidden className="size-5" />
               </button>
             </div>
+            {descricao && <p className="text-sm text-texto-3 -mt-2 mb-3">{descricao}</p>}
             <div className="text-texto-2">{children}</div>
             {rodape && <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">{rodape}</div>}
           </motion.div>
