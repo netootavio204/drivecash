@@ -429,3 +429,26 @@
     animation: girar-spinner 1.6s linear infinite !important;
   }
 }
+
+/* ---------- Ocultar barras de rolagem globalmente mantendo rolagem ativa ---------- */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ---------- Remover setinhas (spinners) de inputs do tipo número ---------- */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+input[type='number'] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+

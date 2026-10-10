@@ -58,10 +58,12 @@ export function useCaixas() {
 /** Retorna o saldo do caixa principal */
 export function useSaldoPrincipal() {
   const { data: saldos, isLoading } = useSaldosCaixas();
+  const { data: caixas } = useCaixas();
   const principal = saldos?.find((c) => c.tipo === 'principal');
+  const caixaObj = caixas?.find((c) => c.tipo === 'principal');
   return {
     saldoCentavos: principal?.saldo_centavos ?? 0,
-    caixaId: principal?.caixa_id,
+    caixaId: principal?.caixa_id || caixaObj?.id,
     isLoading,
   };
 }
@@ -69,10 +71,12 @@ export function useSaldoPrincipal() {
 /** Retorna o saldo do caixa de manutenção */
 export function useSaldoManutencao() {
   const { data: saldos, isLoading } = useSaldosCaixas();
+  const { data: caixas } = useCaixas();
   const manutencao = saldos?.find((c) => c.tipo === 'manutencao');
+  const caixaObj = caixas?.find((c) => c.tipo === 'manutencao');
   return {
     saldoCentavos: manutencao?.saldo_centavos ?? 0,
-    caixaId: manutencao?.caixa_id,
+    caixaId: manutencao?.caixa_id || caixaObj?.id,
     isLoading,
   };
 }

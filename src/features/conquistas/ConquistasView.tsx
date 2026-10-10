@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Estados';
 import {
@@ -29,6 +29,11 @@ export const ConquistasView: React.FC = () => {
   const { data: catalogo = [], isLoading: carregandoCatalogo } = useConquistasCatalogo();
   const { data: desbloqueadas = [], isLoading: carregandoDesbloqueadas } = useConquistasUsuario();
   const { mutateAsync: avaliarConquistas, isPending: avaliando } = useAvaliarConquistas();
+
+  // Avaliação automática de conquistas ao entrar na tela
+  useEffect(() => {
+    void avaliarConquistas();
+  }, [avaliarConquistas]);
 
   // Mapeamento de códigos desbloqueados
   const mapDesbloqueadas = useMemo(() => {

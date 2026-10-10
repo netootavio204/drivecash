@@ -150,6 +150,7 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
       toast.sucesso('Dia fechado com sucesso!');
       aoFechar();
     } catch (err) {
+      console.error('[Meta Driver] Erro ao fechar dia:', err);
       setErroMsg(traduzirErro(err));
     }
   };

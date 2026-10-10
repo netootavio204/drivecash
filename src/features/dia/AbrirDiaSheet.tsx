@@ -56,6 +56,7 @@ export const AbrirDiaSheet: React.FC<AbrirDiaSheetProps> = ({ aberto, aoFechar }
       toast.sucesso(`Ponto batido às ${agora}. Bom trabalho!`);
       aoFechar();
     } catch (err) {
+      console.error('[Meta Driver] Erro ao abrir dia:', err);
       setErroMsg(traduzirErro(err));
     }
   };
@@ -126,12 +127,12 @@ export const AbrirDiaSheet: React.FC<AbrirDiaSheetProps> = ({ aberto, aoFechar }
             variante="primario"
             tamanho="lg"
             bloco
-            className="shadow-neon flex items-center justify-center gap-2"
+            className="shadow-neon"
+            icone={<Clock className="size-5" />}
             onClick={handleConfirmar}
             carregando={isPending}
           >
-            <Clock className="size-5 text-amarelo-400" />
-            <span>⏱ Bater ponto — Abrir dia</span>
+            Bater ponto — Abrir dia
           </Button>
 
           <Button variante="fantasma" bloco onClick={aoFechar}>

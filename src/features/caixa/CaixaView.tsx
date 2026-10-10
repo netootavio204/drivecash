@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Estados';
-import { useSaldosCaixas } from './api';
+import { useSaldosCaixas, useCaixas } from './api';
 import { EntradaRapidaSheet } from '@/features/lancamentos/EntradaRapidaSheet';
 import { SaidaRapidaSheet } from '@/features/lancamentos/SaidaRapidaSheet';
 import { formatarMoeda } from '@/lib/money';
@@ -30,6 +30,7 @@ type Lancamento = Database['public']['Tables']['lancamentos']['Row'] & {
 export const CaixaView: React.FC = () => {
   const { user } = useAuth();
   const { data: saldos, isLoading: carregandoSaldos } = useSaldosCaixas();
+  const { data: caixas } = useCaixas();
 
   const [caixaSelecionado, setCaixaSelecionado] = useState<'principal' | 'manutencao'>('principal');
   const [filtroTipo, setFiltroTipo] = useState<'todos' | 'entrada' | 'saida'>('todos');
@@ -38,17 +39,21 @@ export const CaixaView: React.FC = () => {
 
   const principal = saldos?.find((c) => c.tipo === 'principal');
   const manutencao = saldos?.find((c) => c.tipo === 'manutencao');
+  const caixaPrincipalObj = caixas?.find((c) => c.tipo === 'principal');
+  const caixaManutencaoObj = caixas?.find((c) => c.tipo === 'manutencao');
 
   const caixaAtivoId =
-    caixaSelecionado === 'principal' ? principal?.caixa_id : manutencao?.caixa_id;
+    caixaSelecionado === 'principal'
+      ? principal?.caixa_id || caixaPrincipalObj?.id
+      : manutencao?.caixa_id || caixaManutencaoObj?.id;
 
-  // Busca o extrato do caixa ativo
-  const { data: extrato = [], isLoading: carregandoExtrato } = useQuery({
-    queryKey: ['extrato', caixaAtivoId, filtroTipo, user?.id],
+  // Busca todos os lançamentos ativos do caixa selecionado (chave padronizada com o restante do app)
+  const { data: todosLancamentos = [], isLoading: carregandoExtrato } = useQuery({
+    queryKey: ['lancamentos', 'caixa', caixaAtivoId, user?.id],
     queryFn: async (): Promise<Lancamento[]> => {
       if (!caixaAtivoId || !user) return [];
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('lancamentos')
         .select('*, plataformas(nome, cor), categorias(nome, icone)')
         .eq('caixa_id', caixaAtivoId)
@@ -56,21 +61,38 @@ export const CaixaView: React.FC = () => {
         .is('excluido_em', null)
         .order('ocorrido_em', { ascending: false });
 
-      if (filtroTipo === 'entrada') {
-        query = query.in('tipo', ['entrada', 'transferencia_entrada', 'ajuste_entrada']);
-      } else if (filtroTipo === 'saida') {
-        query = query.in('tipo', ['saida', 'transferencia_saida', 'ajuste_saida']);
-      }
-
-      const { data, error } = await query;
       if (error) {
-        console.warn('[Meta Driver] Erro ao buscar extrato:', error.message);
+        console.warn('[Meta Driver] Erro ao buscar extrato do caixa:', error.message);
         return [];
       }
       return (data as unknown as Lancamento[]) || [];
     },
     enabled: !!caixaAtivoId && !!user,
   });
+
+  // Separação em memória para contagem e resposta instantânea ao clique
+  const { entradas, saidas } = useMemo(() => {
+    const ent = todosLancamentos.filter(
+      (item) =>
+        item.tipo === 'entrada' ||
+        item.tipo === 'transferencia_entrada' ||
+        item.tipo === 'ajuste_entrada'
+    );
+    const sai = todosLancamentos.filter(
+      (item) =>
+        item.tipo === 'saida' ||
+        item.tipo === 'transferencia_saida' ||
+        item.tipo === 'ajuste_saida'
+    );
+    return { entradas: ent, saidas: sai };
+  }, [todosLancamentos]);
+
+  // Lista visível conforme o filtro selecionado
+  const extrato = useMemo(() => {
+    if (filtroTipo === 'entrada') return entradas;
+    if (filtroTipo === 'saida') return saidas;
+    return todosLancamentos;
+  }, [todosLancamentos, filtroTipo, entradas, saidas]);
 
   return (
     <div className="space-y-6">
@@ -113,21 +135,28 @@ export const CaixaView: React.FC = () => {
         </button>
       </div>
 
-      {/* Ações Rápidas */}
-      <div className="flex items-center justify-between gap-3">
-        {/* Filtros por tipo */}
+      {/* Ações Rápidas & Filtros com Contador */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Filtros por tipo com contagem explícita */}
         <div className="flex items-center gap-2">
-          {(['todos', 'entrada', 'saida'] as const).map((tipo) => (
-            <Chip
-              key={tipo}
-              selecionado={filtroTipo === tipo}
-              onClick={() => setFiltroTipo(tipo)}
-            >
-              {tipo === 'todos' && 'Todos'}
-              {tipo === 'entrada' && 'Entradas'}
-              {tipo === 'saida' && 'Saídas'}
-            </Chip>
-          ))}
+          <Chip
+            selecionado={filtroTipo === 'todos'}
+            onClick={() => setFiltroTipo('todos')}
+          >
+            Todos ({todosLancamentos.length})
+          </Chip>
+          <Chip
+            selecionado={filtroTipo === 'entrada'}
+            onClick={() => setFiltroTipo('entrada')}
+          >
+            Entradas ({entradas.length})
+          </Chip>
+          <Chip
+            selecionado={filtroTipo === 'saida'}
+            onClick={() => setFiltroTipo('saida')}
+          >
+            Saídas ({saidas.length})
+          </Chip>
         </div>
 
         {/* Botões de Ação */}
@@ -153,9 +182,18 @@ export const CaixaView: React.FC = () => {
 
       {/* Extrato Completo */}
       <Card className="space-y-4">
-        <h3 className="font-bold text-base text-texto-1">
-          Extrato — {caixaSelecionado === 'principal' ? 'Caixa do Dia' : 'Reserva de Manutenção'}
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-base text-texto-1">
+            Extrato — {caixaSelecionado === 'principal' ? 'Caixa do Dia' : 'Reserva de Manutenção'}
+          </h3>
+          <span className="text-xs text-texto-3 font-medium">
+            {filtroTipo === 'todos'
+              ? `${todosLancamentos.length} lançamento(s)`
+              : filtroTipo === 'entrada'
+              ? `${entradas.length} entrada(s)`
+              : `${saidas.length} saída(s)`}
+          </span>
+        </div>
 
         {carregandoExtrato ? (
           <div className="space-y-2">
@@ -164,8 +202,68 @@ export const CaixaView: React.FC = () => {
             ))}
           </div>
         ) : extrato.length === 0 ? (
-          <div className="text-center py-12 text-texto-3 text-xs">
-            Nenhum lançamento encontrado neste caixa.
+          <div className="text-center py-10 flex flex-col items-center justify-center gap-3 text-texto-3 text-xs bg-bg-2/40 rounded-xl border border-line/40 p-6">
+            <div className="size-11 rounded-full bg-bg-3 flex items-center justify-center text-texto-2">
+              {filtroTipo === 'saida' ? (
+                <TrendingDown className="size-5 text-negativo" />
+              ) : filtroTipo === 'entrada' ? (
+                <TrendingUp className="size-5 text-positivo" />
+              ) : (
+                <Wallet className="size-5 text-laranja-400" />
+              )}
+            </div>
+            <p className="font-semibold text-texto-1 text-sm">
+              {filtroTipo === 'saida'
+                ? 'Nenhuma saída ou despesa registrada neste caixa'
+                : filtroTipo === 'entrada'
+                ? 'Nenhuma corrida ou entrada registrada neste caixa'
+                : 'Nenhum lançamento encontrado neste caixa'}
+            </p>
+            <p className="text-[11px] text-texto-3 max-w-sm">
+              {filtroTipo === 'saida'
+                ? 'Você ainda não registrou nenhum gasto (combustível, refeição, lavagem, etc.) para este caixa.'
+                : filtroTipo === 'entrada'
+                ? 'Você ainda não registrou nenhuma corrida ou receita para este caixa.'
+                : 'Inicie adicionando suas corridas ou seus gastos do expediente.'}
+            </p>
+            {filtroTipo === 'saida' ? (
+              <Button
+                variante="perigo"
+                className="mt-1 !h-9 text-xs"
+                onClick={() => setSheetSaida(true)}
+                icone={<Minus className="size-4" />}
+              >
+                Registrar Saída Agora
+              </Button>
+            ) : filtroTipo === 'entrada' ? (
+              <Button
+                variante="primario"
+                className="mt-1 !h-9 text-xs"
+                onClick={() => setSheetEntrada(true)}
+                icone={<Plus className="size-4" />}
+              >
+                Registrar Entrada Agora
+              </Button>
+            ) : (
+              <div className="flex gap-2 mt-1">
+                <Button
+                  variante="primario"
+                  className="!h-9 text-xs"
+                  onClick={() => setSheetEntrada(true)}
+                  icone={<Plus className="size-4" />}
+                >
+                  + Entrada
+                </Button>
+                <Button
+                  variante="perigo"
+                  className="!h-9 text-xs"
+                  onClick={() => setSheetSaida(true)}
+                  icone={<Minus className="size-4" />}
+                >
+                  − Saída
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-line/40 text-sm">

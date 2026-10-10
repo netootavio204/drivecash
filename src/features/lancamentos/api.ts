@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
+import { executarAvaliacaoConquistas } from '@/features/metas/api';
 import type { Database, TipoLancamento } from '@/lib/database.types';
 
 export type Lancamento = Database['public']['Tables']['lancamentos']['Row'] & {
@@ -155,8 +156,10 @@ export function useCriarLancamento() {
       queryClient.invalidateQueries({ queryKey: ['dia'] });
       queryClient.invalidateQueries({ queryKey: ['metas'] });
       queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
+      queryClient.invalidateQueries({ queryKey: ['conquistas'] });
+      queryClient.invalidateQueries({ queryKey: ['fases'] });
       void supabase.rpc('rpc_atualizar_metas');
-      void supabase.rpc('rpc_avaliar_conquistas');
+      if (user) void executarAvaliacaoConquistas(user.id);
     },
   });
 }

@@ -45,6 +45,25 @@ export function traduzirErro(erro: unknown): string {
     }
   }
 
+  // Erro de tabela ou RPC não encontrada no Supabase
+  if (
+    mensagemOriginal.includes('PGRST202') ||
+    mensagemOriginal.includes('PGRST205') ||
+    mensagemOriginal.includes('schema cache')
+  ) {
+    return 'O banco de dados ainda não foi inicializado. Copie e execute o arquivo supabase/FULL_SETUP.sql no SQL Editor do Supabase.';
+  }
+
+  // Erro de integridade de perfil ou caixas
+  if (
+    mensagemOriginal.includes('profiles') ||
+    mensagemOriginal.includes('foreign key constraint') ||
+    mensagemOriginal.includes('dias_trabalho_user_id_fkey') ||
+    mensagemOriginal.includes('caixa_id')
+  ) {
+    return 'Configurando caixas do seu perfil... Por favor, clique novamente em Bater Ponto.';
+  }
+
   // Se for erro de rede/conexão
   if (mensagemOriginal.toLowerCase().includes('failed to fetch') || mensagemOriginal.toLowerCase().includes('network')) {
     return 'Sem conexão com a internet. Verifique seu sinal.';

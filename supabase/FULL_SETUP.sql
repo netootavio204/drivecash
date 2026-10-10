@@ -520,18 +520,39 @@ end $$;
 
 create or replace function public.rpc_abrir_dia(
   p_data_referencia date, p_km_inicial integer default null, p_saldo_confirmado_centavos bigint default null
-) returns public.dias_trabalho language plpgsql set search_path = public as $$
+) returns public.dias_trabalho language plpgsql security definer set search_path = public, auth as $$
 declare
   v_user uuid := auth.uid(); v_caixa uuid; v_saldo bigint; v_dia public.dias_trabalho;
 begin
   if v_user is null then raise exception 'NAO_AUTENTICADO'; end if;
+
+  -- Garante que o perfil e os caixas existam mesmo se o usuário foi cadastrado antes do setup
+  if not exists (select 1 from public.profiles where id = v_user) then
+    insert into public.profiles (id, nome)
+    values (v_user, coalesce((select split_part(email, '@', 1) from auth.users where id = v_user), 'Motorista'))
+    on conflict (id) do nothing;
+  end if;
+
+  if not exists (select 1 from public.caixas where user_id = v_user and tipo = 'principal') then
+    insert into public.caixas (user_id, tipo, nome, saldo_inicial_centavos, cor)
+    values (v_user, 'principal', 'Caixa do dia', 0, '#FF7A00')
+    on conflict do nothing;
+  end if;
+
+  if not exists (select 1 from public.caixas where user_id = v_user and tipo = 'manutencao') then
+    insert into public.caixas (user_id, tipo, nome, saldo_inicial_centavos, cor)
+    values (v_user, 'manutencao', 'Caixa Manutenção', 0, '#22C55E')
+    on conflict do nothing;
+  end if;
+
   if exists (select 1 from dias_trabalho where user_id = v_user and status = 'aberto') then
     raise exception 'DIA_ABERTO_EXISTENTE'; end if;
   if exists (select 1 from dias_trabalho where user_id = v_user and data_referencia = p_data_referencia) then
     raise exception 'DIA_JA_EXISTE_NESTA_DATA'; end if;
 
   select id into v_caixa from caixas where user_id = v_user and tipo = 'principal';
-  select saldo_centavos into v_saldo from vw_saldo_caixas where caixa_id = v_caixa;
+  select coalesce(saldo_centavos, 0) into v_saldo from vw_saldo_caixas where caixa_id = v_caixa;
+  v_saldo := coalesce(v_saldo, 0);
 
   insert into dias_trabalho (user_id, data_referencia, status, saldo_abertura_centavos, km_inicial)
   values (v_user, p_data_referencia, 'aberto', coalesce(p_saldo_confirmado_centavos, v_saldo), p_km_inicial)

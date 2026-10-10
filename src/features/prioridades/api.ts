@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
+import { executarAvaliacaoConquistas } from '@/features/metas/api';
 import type { Database } from '@/lib/database.types';
 
 export type Prioridade = Database['public']['Tables']['prioridades']['Row'];
@@ -196,6 +197,10 @@ export function usePagarPrioridade() {
       queryClient.invalidateQueries({ queryKey: ['caixas'] });
       queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
       queryClient.invalidateQueries({ queryKey: ['dia'] });
+      queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
+      queryClient.invalidateQueries({ queryKey: ['conquistas'] });
+      queryClient.invalidateQueries({ queryKey: ['fases'] });
+      if (user) void executarAvaliacaoConquistas(user.id);
     },
   });
 }
