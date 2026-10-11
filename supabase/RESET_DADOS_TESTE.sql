@@ -1,33 +1,49 @@
--- Script para Resetar Dados de Testes / Registros Operacionais (Meta Driver)
--- Mantém: Usuários (auth/profiles), Plataformas, Categorias do Sistema e Catálogo de Conquistas/Fases.
--- Limpa: Lançamentos, Dias de Trabalho, Transferências, Ciclos de Metas, Histórico de Auditoria e Mensagens de Suporte.
--- Reseta: Saldos dos Caixas para R$ 0,00 e Gamificação para 0 estrelas / Fase 1.
+-- =====================================================================
+-- META DRIVER — SCRIPT DE RESET DE DADOS DE TESTES (SUPABASE)
+-- Execute este script no SQL Editor do Supabase antes de ir para produção.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- OPÇÃO 1: RESET OPERACIONAL (Limpa dados de testes e mantém os usuários)
+-- Reseta lançamentos, dias trabalhados, prioridades, metas, veículos de teste,
+-- zera os saldos dos caixas e reinicia a gamificação e onboarding.
+-- ---------------------------------------------------------------------
 
 DO $$
-DECLARE
-  v_user_id uuid;
 BEGIN
-  -- Se quiser rodar para TODOS os usuários de teste:
-  -- Limpa lançamentos e movimentações
+  -- 1. Limpar lançamentos financeiros e transferências de testes
   DELETE FROM public.lancamentos;
   DELETE FROM public.transferencias;
   
-  -- Limpa dias de trabalho
+  -- 2. Limpar dias de trabalho e turnos
   DELETE FROM public.dias_trabalho;
   
-  -- Limpa ciclos de metas
-  DELETE FROM public.meta_ciclos;
+  -- 3. Limpar contas a pagar (prioridades) cadastradas em testes
+  DELETE FROM public.prioridades;
   
-  -- Limpa conquistas desbloqueadas em testes
+  -- 4. Limpar metas e ciclos de metas de testes
+  DELETE FROM public.meta_ciclos;
+  DELETE FROM public.metas;
+  
+  -- 5. Limpar veículos de teste cadastrados
+  DELETE FROM public.veiculos;
+  
+  -- 6. Limpar conquistas desbloqueadas durante testes
   DELETE FROM public.conquistas_usuario;
   
-  -- Limpa mensagens de teste de suporte
+  -- 7. Limpar mensagens de suporte de teste
   DELETE FROM public.suporte_mensagens;
   
-  -- Limpa auditoria de testes
+  -- 8. Limpar histórico de auditoria de testes
   DELETE FROM public.auditoria;
 
-  -- Reseta dados de gamificação dos usuários para o estado inicial
+  -- 9. Zerar saldos iniciais dos caixas (Principal, Manutenção, etc.)
+  UPDATE public.caixas
+  SET
+    saldo_inicial_centavos = 0,
+    meta_saldo_centavos = NULL;
+
+  -- 10. Resetar gamificação para nível inicial (Fase 1, 0 estrelas)
   UPDATE public.gamificacao_usuario
   SET
     estrelas_totais = 0,
@@ -36,5 +52,19 @@ BEGIN
     maior_sequencia = 0,
     atualizado_em = now();
 
-  RAISE NOTICE 'Dados operacionais de teste resetados com sucesso!';
+  -- 11. Resetar status de onboarding dos perfis para permitir novo fluxo inicial limpo
+  UPDATE public.profiles
+  SET
+    onboarding_concluido = false,
+    atualizado_em = now();
+
+  RAISE NOTICE 'Dados operacionais e pessoais de teste resetados com sucesso! O banco está pronto para produção.';
 END $$;
+
+-- ---------------------------------------------------------------------
+-- OPÇÃO 2: RESET TOTAL DE USUÁRIOS (Opcional - caso queira apagar contas de teste)
+-- Se você preferir excluir completamente as contas de email criadas nos testes,
+-- descomente as 2 linhas abaixo e execute no SQL Editor:
+-- ---------------------------------------------------------------------
+-- DELETE FROM public.profiles;
+-- DELETE FROM auth.users;

@@ -393,11 +393,11 @@ export const PrioridadesView: React.FC = () => {
         titulo={prioridadeEmEdicao ? 'Editar Conta' : 'Nova Prioridade'}
         descricao="Cadastre os dados da obrigação para controle financeiro."
         rodape={
-          <div className="flex gap-2 w-full sm:justify-end">
-            <Button variante="fantasma" onClick={() => setModalFormAberto(false)}>
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 w-full sm:justify-end">
+            <Button variante="fantasma" onClick={() => setModalFormAberto(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button variante="primario" onClick={handleSalvar} carregando={criando || editando}>
+            <Button variante="primario" onClick={handleSalvar} carregando={criando || editando} className="w-full sm:w-auto justify-center">
               Salvar Conta
             </Button>
           </div>
@@ -497,8 +497,8 @@ export const PrioridadesView: React.FC = () => {
         titulo="Pagar Conta"
         descricao="Confirmar a baixa financeira desta obrigação."
         rodape={
-          <div className="flex gap-2 w-full sm:justify-end">
-            <Button variante="fantasma" onClick={() => setModalPagarAberto(false)}>
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 w-full sm:justify-end">
+            <Button variante="fantasma" onClick={() => setModalPagarAberto(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
             <Button
@@ -506,6 +506,7 @@ export const PrioridadesView: React.FC = () => {
               onClick={handleConfirmarPagamento}
               carregando={pagando}
               icone={<CheckCircle2 className="size-4" />}
+              className="w-full sm:w-auto justify-center"
             >
               Confirmar Pagamento
             </Button>

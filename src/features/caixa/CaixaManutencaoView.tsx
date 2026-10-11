@@ -245,11 +245,11 @@ export const CaixaManutencaoView: React.FC = () => {
         titulo="Aportar na Manutenção"
         descricao="Transfira um valor do Caixa do Dia para guardar na reserva."
         rodape={
-          <div className="flex gap-2 w-full sm:justify-end">
-            <Button variante="fantasma" onClick={() => setModalAporteAberto(false)}>
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 w-full sm:justify-end">
+            <Button variante="fantasma" onClick={() => setModalAporteAberto(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button variante="primario" onClick={handleConfirmarAporte} carregando={transferindo}>
+            <Button variante="primario" onClick={handleConfirmarAporte} carregando={transferindo} className="w-full sm:w-auto justify-center">
               Confirmar Aporte
             </Button>
           </div>
@@ -276,11 +276,11 @@ export const CaixaManutencaoView: React.FC = () => {
         titulo="Gastar da Reserva"
         descricao="Registre pagamentos de mecânico, pneus, peças ou revisão."
         rodape={
-          <div className="flex gap-2 w-full sm:justify-end">
-            <Button variante="fantasma" onClick={() => setModalGastoAberto(false)}>
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 w-full sm:justify-end">
+            <Button variante="fantasma" onClick={() => setModalGastoAberto(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button variante="primario" onClick={handleConfirmarGasto} carregando={gastando}>
+            <Button variante="primario" onClick={handleConfirmarGasto} carregando={gastando} className="w-full sm:w-auto justify-center">
               Registrar Pagamento
             </Button>
           </div>
@@ -317,11 +317,11 @@ export const CaixaManutencaoView: React.FC = () => {
         titulo="Configurar Reserva"
         descricao="Ajuste o valor alvo e o depósito diário sugerido."
         rodape={
-          <div className="flex gap-2 w-full sm:justify-end">
-            <Button variante="fantasma" onClick={() => setModalConfigAberto(false)}>
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 w-full sm:justify-end">
+            <Button variante="fantasma" onClick={() => setModalConfigAberto(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button variante="primario" onClick={handleSalvarConfig}>
+            <Button variante="primario" onClick={handleSalvarConfig} className="w-full sm:w-auto justify-center">
               Salvar Alterações
             </Button>
           </div>
