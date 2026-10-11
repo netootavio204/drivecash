@@ -47,6 +47,7 @@ export function Sheet({ aberto, aoFechar, titulo, descricao, children, rodape, c
               'relative w-full max-w-lg max-h-[92dvh] flex flex-col outline-none',
               'bg-bg-1 border border-line border-b-0 rounded-t-[28px] lg:rounded-lg lg:border-b',
               'shadow-[0_-20px_60px_rgba(0,0,0,0.6)]',
+              'pb-[calc(max(env(safe-area-inset-bottom,0px),24px)+1.25rem)] lg:pb-0',
               className,
             )}
             initial={{ y: '100%' }}
@@ -78,9 +79,9 @@ export function Sheet({ aberto, aoFechar, titulo, descricao, children, rodape, c
               </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-4">{children}</div>
+            <div className="flex-1 overflow-y-auto px-5 pb-6">{children}</div>
             {rodape && (
-              <footer className="px-5 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-line/60">
+              <footer className="px-5 pt-3 pb-[calc(max(env(safe-area-inset-bottom,0px),24px)+1rem)] border-t border-line/60">
                 {rodape}
               </footer>
             )}

@@ -227,19 +227,21 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
             <div className="pt-2">
               <Button
                 variante="secundario"
-                className="w-full justify-between"
+                className="w-full justify-between px-3.5 py-2.5 text-xs sm:text-sm font-bold min-h-[44px]"
                 onClick={() => setModalLoteAberto(true)}
-                icone={<Coins className="size-4" />}
-                iconeDireita={<ChevronRight className="size-4" />}
+                icone={<Coins className="size-4 shrink-0" />}
+                iconeDireita={<ChevronRight className="size-4 shrink-0" />}
               >
-                Conferir / Lançar total por plataforma
+                <span className="truncate flex-1 text-center sm:text-left">
+                  Conferir / Lançar por plataforma
+                </span>
               </Button>
               <p className="text-[11px] text-texto-3 mt-1.5 text-center">
                 Deseja lançar os ganhos de Uber, 99 ou Táxi de uma só vez? Toque acima.
               </p>
             </div>
 
-            <div className="pt-4 flex gap-2">
+            <div className="pt-6 pb-2 flex gap-3">
               <Button variante="fantasma" className="flex-1" onClick={aoFechar}>
                 Cancelar
               </Button>
