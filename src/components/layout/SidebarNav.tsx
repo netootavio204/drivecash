@@ -9,7 +9,6 @@ import {
   BarChart3,
   Car,
   Settings,
-  Layers,
   ShieldCheck,
   LogOut,
 } from 'lucide-react';
@@ -67,21 +66,7 @@ export function SidebarNav() {
         ))}
       </nav>
 
-      <div className="pt-4 mt-auto border-t border-line/60 space-y-2">
-        <NavLink
-          to="/design-system"
-          className={({ isActive }: { isActive: boolean }) =>
-            cn(
-              'flex items-center gap-3 px-3.5 py-2 rounded-md text-xs font-bold transition-all',
-              isActive
-                ? 'bg-laranja-500/20 text-laranja-400 border border-laranja-500/40'
-                : 'text-texto-3 hover:text-texto-1 hover:bg-bg-2',
-            )
-          }
-        >
-          <Layers className="size-4 shrink-0" />
-          <span>🎨 Ver Design System</span>
-        </NavLink>
+      <div className="pt-4 mt-auto border-t border-line/60">
         <BotaoSair />
       </div>
     </aside>

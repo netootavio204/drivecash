@@ -2,7 +2,6 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PaginaPlaceholder } from '@/components/layout/PaginaPlaceholder';
 import { InicioPage } from '@/features/dashboard/InicioPage';
-import { DesignSystemPage } from '@/features/design-system/DesignSystemPage';
 import { LoginView } from '@/features/auth/LoginView';
 import { CadastroView } from '@/features/auth/CadastroView';
 import { RecuperarSenhaView } from '@/features/auth/RecuperarSenhaView';
@@ -138,10 +137,6 @@ export const router = createBrowserRouter([
           {
             path: 'configuracoes',
             element: <ConfiguracoesView />,
-          },
-          {
-            path: 'design-system',
-            element: <DesignSystemPage />,
           },
           {
             path: '*',

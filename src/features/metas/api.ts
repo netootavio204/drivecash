@@ -348,6 +348,7 @@ export async function executarAvaliacaoConquistas(userId: string) {
       { data: lancamentos },
       { data: prioridades },
       { data: metasCiclos },
+      { data: metasCadastradas },
       { data: fasesCatalogo },
       { data: caixas },
     ] = await Promise.all([
@@ -356,7 +357,8 @@ export async function executarAvaliacaoConquistas(userId: string) {
       supabase.from('dias_trabalho').select('*').eq('user_id', userId).order('data_referencia', { ascending: false }),
       supabase.from('lancamentos').select('tipo, valor_centavos, qtd_corridas, caixa_id').eq('user_id', userId).is('excluido_em', null),
       supabase.from('prioridades').select('status').eq('user_id', userId),
-      supabase.from('meta_ciclos').select('periodo, nivel_maximo').eq('user_id', userId),
+      supabase.from('meta_ciclos').select('meta_id, nivel_maximo').eq('user_id', userId),
+      supabase.from('metas').select('id, periodo').eq('user_id', userId),
       supabase.from('fases').select('*').order('numero', { ascending: true }),
       supabase.from('caixas').select('id, tipo, saldo_inicial_centavos, meta_saldo_centavos').eq('user_id', userId),
     ]);
@@ -366,6 +368,7 @@ export async function executarAvaliacaoConquistas(userId: string) {
     const listaLanc = lancamentos || [];
     const listaPrioridades = prioridades || [];
     const listaMetas = metasCiclos || [];
+    const mapPeriodoMeta = new Map((metasCadastradas || []).map((m) => [m.id, m.periodo]));
     const listaFases = fasesCatalogo || [];
     const listaCaixas = caixas || [];
 
@@ -393,7 +396,7 @@ export async function executarAvaliacaoConquistas(userId: string) {
 
     const temBronze = listaMetas.some((m) => ['bronze', 'prata', 'ouro'].includes(m.nivel_maximo || ''));
     const temOuro = listaMetas.some((m) => m.nivel_maximo === 'ouro');
-    const temMesPerfeito = listaMetas.some((m) => m.periodo === 'mensal' && m.nivel_maximo === 'ouro');
+    const temMesPerfeito = listaMetas.some((m) => mapPeriodoMeta.get(m.meta_id) === 'mensal' && m.nivel_maximo === 'ouro');
     const prioridadesPagas = listaPrioridades.filter((p) => p.status === 'pago').length;
 
     const temDia500 = listaDias.some((d) => {

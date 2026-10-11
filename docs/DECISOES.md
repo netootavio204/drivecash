@@ -13,6 +13,14 @@
 | 6 | Dias de folga e sequência | Nenhum | 5 | _(pendente)_ |
 | 7 | Identidade visual (logo, ícone) | Proposta na Fase 1 | 1 e 6 | **Logo próprio do dono** (carro + pino de mapa + carteira + gráfico, laranja/vermelho sobre preto) |
 | 8 | Quem vai usar (só eu / público) | Multiusuário seguro | 2 e 6 | **Público / Qualquer motorista (multiusuário RLS)** |
+| 9 | Estrutura da pasta `APK/` | A: reaproveita raiz / B: cópia completa | 7 | **B: Cópia completa e isolada dentro de `APK/`** |
+| 10 | Nome exibido e código do pacote (`applicationId`) | Nome do app; `com.metadriver.app` | 7 | **Meta Driver**; `com.metadriver.app` |
+| 11 | Banco usado pelo APK | O mesmo Supabase de produção | 7 | **O mesmo Supabase de produção** |
+| 12 | Versões de Android suportadas (`minSdk`) | Mínimo do Capacitor atual | 7 | **API 24+ (Android 7.0+)** |
+| 13 | Botão voltar no Início | "Toque de novo para sair" | 7 | **"Toque de novo para sair"** |
+| 14 | Biometria/PIN ao abrir o app | Não nesta fase (P2) | 7 | **Não nesta fase** |
+| 15 | Entrega final e tipo de conta | APK fora da loja | 7 | **APK instalável para testar no celular e compartilhar** |
+| 16 | Links de e-mail no app (deep link) | Deep link com esquema próprio | 7 | **Deep link com esquema próprio (`metadriver://`)** |
 
 ## Registro de decisões
 | Data | Fase | Decisão | Origem (resposta do dono / padrão adotado) |
@@ -84,6 +92,22 @@
 | 2026-10-10 | 6 | Identidade instalável (PWA): Meta Driver com ícones neon e tema escuro | resposta do dono (★) |
 | 2026-10-10 | 6 | Canal de suporte: formulário de contato integrado no app | resposta do dono |
 | 2026-10-10 | 6 | Fases extras planejadas para serem criadas após a aprovação da Fase 6 | resposta do dono |
+| 2026-10-10 | 7 | Ambiente: Windows com Android Studio já instalado | resposta do dono |
+| 2026-10-10 | 7 | Dispositivo de teste: Celular Android físico conectado via cabo USB | resposta do dono (★) |
+| 2026-10-10 | 7 | Versão mínima Android: API 24+ (Android 7.0+ - padrão Capacitor) | resposta do dono (★) |
+| 2026-10-10 | 7 | Nome no celular: **Meta Driver** | resposta do dono (★) |
+| 2026-10-10 | 7 | Código do pacote (applicationId): `com.metadriver.app` | resposta do dono (★) |
+| 2026-10-10 | 7 | Ícone e Splash: identidade visual oficial escura com gradiente e logo neon | resposta do dono (★) |
+| 2026-10-10 | 7 | Orientação de tela: Somente Retrato (em pé) | resposta do dono (★) |
+| 2026-10-10 | 7 | Estrutura: Cópia completa e isolada do código dentro da pasta `APK/` | resposta do dono |
+| 2026-10-10 | 7 | Banco de dados: o mesmo Supabase de produção do Web App | resposta do dono (★) |
+| 2026-10-10 | 7 | Botão Voltar no Início: 'Toque de novo para sair' | resposta do dono (★) |
+| 2026-10-10 | 7 | Vibração tátil (Haptics): sim, ativa para conquistas, fechamento e lançamentos | resposta do dono (★) |
+| 2026-10-10 | 7 | Exportação: acionar menu nativo Compartilhar do Android (WhatsApp, Drive, etc.) | resposta do dono (★) |
+| 2026-10-10 | 7 | Links de e-mail / senha: Deep Link nativo do app (`metadriver://`) | resposta do dono (★) |
+| 2026-10-10 | 7 | Biometria / PIN: não nesta fase | resposta do dono (★) |
+| 2026-10-10 | 7 | Entrega final: APK instalável pronto para testar no celular e compartilhar | resposta do dono (★) |
+| 2026-10-10 | 7 | Keystore: geração com 2 cópias seguras salvas fora do computador | resposta do dono (★) |
 
 ## Mudanças em relação ao PRD
 

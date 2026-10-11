@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { SidebarNav } from './SidebarNav';
 import { Toaster } from '@/components/ui/Toast';
@@ -19,11 +19,7 @@ function BotaoSairMobile() {
   );
 }
 
-
 export function AppLayout() {
-  const location = useLocation();
-  const ehDesignSystem = location.pathname === '/design-system';
-
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-bg-0 text-texto-1 selection:bg-laranja-500/30">
       <SidebarNav />
@@ -35,14 +31,6 @@ export function AppLayout() {
             <span className="font-extrabold text-base tracking-tight texto-gradiente">{APP_NAME}</span>
           </div>
           <div className="flex items-center gap-2">
-            {!ehDesignSystem && (
-              <a
-                href="/design-system"
-                className="text-xs font-bold text-laranja-400 bg-laranja-500/10 px-2.5 py-1 rounded-full border border-laranja-500/20"
-              >
-                Design System
-              </a>
-            )}
             <BotaoSairMobile />
           </div>
         </header>

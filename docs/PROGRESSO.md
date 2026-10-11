@@ -10,7 +10,8 @@
 | 3 | Núcleo do caixa (abrir dia, lançamentos, extrato) | ✅ aprovada | 2026-10-10 |
 | 4 | Fechamento do dia, Caixa Manutenção e Prioridades | ✅ aprovada | 2026-10-10 |
 | 5 | Metas, medalhas, estrelas, fases e conquistas | ✅ aprovada | 2026-10-10 |
-| 6 | Histórico, relatórios, configurações, PWA e publicação | ✅ concluída | 2026-10-10 |
+| 6 | Histórico, relatórios, configurações, PWA e publicação | ✅ aprovada | 2026-10-10 |
+| 7 | APK Android (pasta `APK/`) e finalização no Android Studio | ✅ pronta para testes | 2026-10-10 |
 
 ## Como rodar o projeto
 ```bash
@@ -73,10 +74,25 @@ npm run build
     - `vercel.json` configurado com reescritas SPA e cabeçalhos de proteção (HSTS, CSP, X-Frame-Options).
   - **Testes Unitários:** 41 testes automatizados (100% de aprovação).
 
-## Como atualizar o app em produção
-1. Clone o repositório ou puxe as alterações mais recentes da `main`.
-2. Configure as variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` na Vercel.
-3. O deploy é automático a cada commit na branch `main`.
+  - **Aplicativo Android Nativo (Fase 7 - pasta `APK/`):**
+    - Projeto nativo independente com Capacitor em `APK/` e `APK/android/`.
+    - Pacote configurado: `com.metadriver.app`, nome `Meta Driver`.
+    - Orientação fixa em pé (retrato / portrait) no `AndroidManifest.xml`.
+    - Ícones oficiais neon e splash screen integrada nos mipmaps do Android.
+    - Deep links registrados no manifesto (`metadriver://`).
+    - Integrações nativas isoladas em `src/lib/plataforma.ts`:
+      - Botão voltar com "Toque de novo para sair" na tela inicial.
+      - Vibração tátil nativa para metas e fechamentos.
+      - Menu Compartilhar nativo do Android para relatórios e CSVs.
+      - Barra de status escura (`#0A0A0A`).
+    - Guia completo e passo a passo documentado em `APK/README_APK.md`.
+
+## Como atualizar o app em produção e no APK
+1. **Web (Vercel):**
+   - O deploy é automático a cada commit na branch `main`.
+2. **Android (APK):**
+   - Dentro da pasta `APK/`, execute `npm run build && npx cap sync android`.
+   - Abra a pasta `APK/android` no Android Studio e gere o APK (Debug ou Signed Release).
 
 ## Próximo passo
-Aprovação do dono do produto para finalização da Fase 6 e planejamento das **fases extras**.
+Abertura da pasta `APK/android` no Android Studio pelo dono do projeto para teste no aparelho físico e geração do APK final.

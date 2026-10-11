@@ -1,0 +1,29 @@
+# Dependências
+node_modules/
+
+# Build Web
+dist/
+
+# Android Build & Gradle
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/captures/
+.gradle/
+build/
+
+# Chaves de Assinatura e Keystores (NUNCA COMMITAR NO GIT)
+keystore/
+*.keystore
+*.jks
+keystore.properties
+
+# Variáveis de ambiente locais
+.env.local
+.env.*.local
+
+# IDEs
+.idea/
+*.iml
+.vscode/

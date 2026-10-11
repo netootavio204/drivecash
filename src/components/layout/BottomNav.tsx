@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Wallet, Target, MoreHorizontal, ArrowUpRight, ArrowDownLeft, Layers, ShieldCheck, CheckSquare } from 'lucide-react';
+import { Home, Wallet, Target, MoreHorizontal, ArrowUpRight, ArrowDownLeft, ShieldCheck, CheckSquare } from 'lucide-react';
 import { Fab } from '@/components/ui/IconButton';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
@@ -25,7 +25,6 @@ export function BottomNav() {
     { caminho: '/relatorios', rotulo: textos.nav.relatorios, icone: Home },
     { caminho: '/veiculo', rotulo: textos.nav.veiculo, icone: Home },
     { caminho: '/configuracoes', rotulo: textos.nav.configuracoes, icone: MoreHorizontal },
-    { caminho: '/design-system', rotulo: '🎨 Design System', icone: Layers },
   ];
 
   return (
@@ -129,7 +128,7 @@ export function BottomNav() {
             variante="fantasma"
             tamanho="md"
             bloco
-            icone={<Layers />}
+            icone={<Wallet />}
             onClick={() => {
               setMenuAcoesAberto(false);
               navigate('/caixa');

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Estados';
-import { useHistoricoDias } from '@/features/historico/api';
+import { useHistoricoDias, type DiaHistoricoComResumo } from '@/features/historico/api';
 import { formatarMoeda } from '@/lib/money';
 import { exportarRelatorioMD, exportarDiasCSV, imprimirRelatorioPDF } from '@/lib/exportacao';
 import {
@@ -14,6 +14,7 @@ import {
   Car,
   Calendar,
   Sparkles,
+  Trophy,
 } from 'lucide-react';
 
 type PeriodoRelatorio = 'semana' | 'mes' | 'ano' | 'tudo';
@@ -310,43 +311,197 @@ export const RelatoriosView: React.FC = () => {
             </Card>
           </div>
 
-          {/* Gráfico Visual de Evolução Diária (Barras SVG Nativas) */}
+          {/* Gráfico Visual de Evolução Diária (Barras Proporcionais Modernas) */}
           {diasFiltrados.length > 0 && (
-            <Card className="p-4 bg-bg-2 border-line/60 space-y-3">
-              <h3 className="font-bold text-sm text-texto-1">Evolução do Lucro por Dia</h3>
-
-              <div className="h-40 w-full flex items-end gap-2 pt-4 pb-2 px-1 overflow-x-auto no-scrollbar">
-                {(() => {
-                  const maxLucro = Math.max(
-                    1,
-                    ...diasFiltrados.map((d) => Math.max(0, d.lucro_centavos))
-                  );
-
-                  return diasFiltrados.slice(-14).map((d) => {
-                    const alturaPct = Math.max(8, Math.round((Math.max(0, d.lucro_centavos) / maxLucro) * 100));
-
-                    return (
-                      <div
-                        key={d.id}
-                        className="flex-1 min-w-[32px] flex flex-col items-center gap-1.5 h-full justify-end group"
-                        title={`${d.data_referencia}: ${formatarMoeda(d.lucro_centavos)}`}
-                      >
-                        <div
-                          className="w-full rounded-t-md bg-gradient-to-t from-laranja-500 to-amber-400 transition-all group-hover:brightness-125"
-                          style={{ height: `${alturaPct}%` }}
-                        />
-                        <span className="text-[9px] text-texto-3 font-mono truncate">
-                          {d.data_referencia.slice(8, 10)}
-                        </span>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </Card>
+            <GraficoEvolucaoLucro dias={diasFiltrados} />
           )}
         </>
       )}
     </div>
   );
 };
+
+function extrairInfoData(dataRef: string) {
+  const [ano, mes, dia] = dataRef.split('-').map(Number);
+  const data = new Date(ano, mes - 1, dia, 12, 0, 0);
+  const diaSemana = data.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+  const dataFormatada = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`;
+  return {
+    dia: String(dia).padStart(2, '0'),
+    diaSemana,
+    dataFormatada,
+  };
+}
+
+function formatarValorCurto(centavos: number) {
+  const reais = centavos / 100;
+  if (Math.abs(reais) >= 1000) {
+    return `R$ ${(reais / 1000).toFixed(1)}k`;
+  }
+  return `R$ ${reais.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+interface GraficoEvolucaoProps {
+  dias: DiaHistoricoComResumo[];
+}
+
+function GraficoEvolucaoLucro({ dias }: GraficoEvolucaoProps) {
+  // Ordena cronologicamente do dia mais antigo ao mais recente
+  const diasOrdenados = useMemo(() => {
+    return [...dias].sort((a, b) => a.data_referencia.localeCompare(b.data_referencia));
+  }, [dias]);
+
+  if (diasOrdenados.length === 0) return null;
+
+  // Encontra o maior lucro positivo para servir de teto da escala
+  const maiorLucro = Math.max(1, ...diasOrdenados.map((d) => d.lucro_centavos));
+  const diaMaiorLucro = diasOrdenados.find((d) => d.lucro_centavos === maiorLucro);
+
+  // O teto recebe folga de 25% para que o rótulo com o valor fique folgado em cima da barra
+  const tetoEscala = Math.max(maiorLucro * 1.25, 1000);
+
+  // Se forem poucos dias (<= 5), centralizamos com bom espaçamento. Se forem mais, alinhamos com scroll
+  const centralizar = diasOrdenados.length <= 5;
+
+  return (
+    <Card className="p-4 sm:p-5 bg-bg-2 border-line/60 space-y-4">
+      {/* Cabeçalho do Gráfico */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line/40 pb-3">
+        <div>
+          <h3 className="font-bold text-sm text-texto-1">Evolução do Lucro por Dia</h3>
+          <p className="text-[11px] text-texto-3">
+            Histórico diário líquido apurado no período
+          </p>
+        </div>
+
+        {diaMaiorLucro && diaMaiorLucro.lucro_centavos > 0 && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold self-start sm:self-auto">
+            <Trophy className="size-3.5 shrink-0 text-amber-400" />
+            <span>
+              Melhor dia:{' '}
+              <strong className="text-texto-1 font-mono">
+                {formatarMoeda(diaMaiorLucro.lucro_centavos)}
+              </strong>{' '}
+              ({extrairInfoData(diaMaiorLucro.data_referencia).dataFormatada})
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Área do Gráfico */}
+      <div className="relative pt-6 pb-2">
+        {/* Linhas de Grade de Fundo */}
+        <div className="absolute inset-x-0 top-6 bottom-14 flex flex-col justify-between pointer-events-none opacity-40">
+          <div className="border-b border-dashed border-line flex items-center justify-between">
+            <span className="text-[9px] font-mono text-texto-3 -mt-3">
+              {formatarValorCurto(tetoEscala)}
+            </span>
+          </div>
+          <div className="border-b border-dashed border-line flex items-center justify-between">
+            <span className="text-[9px] font-mono text-texto-3 -mt-3">
+              {formatarValorCurto(Math.round(tetoEscala / 2))}
+            </span>
+          </div>
+          <div className="border-b border-line" />
+        </div>
+
+        {/* Trilho de Barras */}
+        <div
+          className={`h-48 w-full flex items-end gap-3 sm:gap-5 overflow-x-auto no-scrollbar px-2 relative z-10 ${
+            centralizar ? 'justify-center' : 'justify-start'
+          }`}
+        >
+          {diasOrdenados.map((d) => {
+            const ehPositivo = d.lucro_centavos > 0;
+            const ehNegativo = d.lucro_centavos < 0;
+
+            // Altura relativa em % baseada no teto com folga
+            const pct = ehPositivo
+              ? Math.min(85, Math.max(8, Math.round((d.lucro_centavos / tetoEscala) * 100)))
+              : ehNegativo
+              ? Math.min(40, Math.max(8, Math.round((Math.abs(d.lucro_centavos) / tetoEscala) * 100)))
+              : 3;
+
+            const infoData = extrairInfoData(d.data_referencia);
+            const ehMelhorDia = d.id === diaMaiorLucro?.id && ehPositivo;
+
+            return (
+              <div
+                key={d.id}
+                className="w-14 sm:w-16 shrink-0 flex flex-col items-center justify-end h-full relative group"
+              >
+                {/* Tooltip flutuante no Hover / Focus */}
+                <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 min-w-[140px]">
+                  <div className="bg-bg-1 border border-line/80 rounded-lg p-2 shadow-xl text-center space-y-1 backdrop-blur-md">
+                    <span className="text-[10px] font-bold text-texto-2 block border-b border-line/40 pb-0.5">
+                      {infoData.dataFormatada} ({infoData.diaSemana})
+                    </span>
+                    <p
+                      className={`text-xs font-mono font-black ${
+                        ehPositivo ? 'text-positivo' : ehNegativo ? 'text-negativo' : 'text-texto-2'
+                      }`}
+                    >
+                      {formatarMoeda(d.lucro_centavos)}
+                    </p>
+                    <div className="text-[9px] text-texto-3 flex justify-between gap-2 pt-0.5 font-mono">
+                      <span>Rec: {formatarMoeda(d.receita_centavos)}</span>
+                      <span>Desp: {formatarMoeda(d.despesas_centavos)}</span>
+                    </div>
+                    {d.corridas > 0 && (
+                      <span className="text-[9px] text-texto-3 block">
+                        {d.corridas} viagens realizadas
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-2 h-2 bg-bg-1 border-r border-b border-line/80 rotate-45 -mt-1" />
+                </div>
+
+                {/* Coluna Visual da Barra */}
+                <div className="w-full flex flex-col items-center justify-end flex-1 pb-1">
+                  {/* Valor monetário flutuando sobre a barra */}
+                  <span
+                    className={`text-[10px] font-mono font-bold truncate max-w-full px-0.5 mb-1 transition-transform group-hover:scale-110 ${
+                      ehMelhorDia
+                        ? 'text-amber-300 font-black'
+                        : ehPositivo
+                        ? 'text-texto-1'
+                        : ehNegativo
+                        ? 'text-negativo'
+                        : 'text-texto-3'
+                    }`}
+                  >
+                    {formatarValorCurto(d.lucro_centavos)}
+                  </span>
+
+                  {/* A Barra com Largura Controlada e Gradiente */}
+                  <div
+                    style={{ height: `${pct}%` }}
+                    className={`w-7 sm:w-8 max-w-[32px] rounded-t-md transition-all duration-300 group-hover:brightness-125 ${
+                      ehPositivo
+                        ? ehMelhorDia
+                          ? 'bg-gradient-to-t from-laranja-600 via-laranja-500 to-amber-300 shadow-[0_0_12px_rgba(255,160,0,0.35)]'
+                          : 'bg-gradient-to-t from-laranja-600 to-amber-400 shadow-[0_0_8px_rgba(255,122,0,0.2)]'
+                        : ehNegativo
+                        ? 'bg-gradient-to-t from-vermelho-600 to-vermelho-400 shadow-[0_0_8px_rgba(239,68,68,0.25)]'
+                        : 'bg-line/60 rounded-sm'
+                    }`}
+                  />
+                </div>
+
+                {/* Eixo X: Data e Dia da Semana */}
+                <div className="pt-2 border-t border-line/80 w-full flex flex-col items-center">
+                  <span className="text-xs font-black font-mono text-texto-1 group-hover:text-laranja-400 transition-colors">
+                    {infoData.dia}
+                  </span>
+                  <span className="text-[10px] text-texto-3 font-semibold uppercase">
+                    {infoData.diaSemana}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  );
+}

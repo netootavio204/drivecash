@@ -27,9 +27,6 @@ export function PaginaPlaceholder({
         icone={icone}
         acao={
           <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
-            <Button variante="secundario" onClick={() => navigate('/design-system')}>
-              Ver Design System
-            </Button>
             <Button variante="fantasma" onClick={() => navigate('/')}>
               {textos.comum.voltarInicio}
             </Button>
