@@ -187,11 +187,11 @@ export const CaixaManutencaoView: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-texto-3">
-            <span>{pctMeta}% concluído</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-texto-3">
+            <span className="font-semibold text-texto-2">{pctMeta}% concluído</span>
             {faltaParaMeta > 0 && diasEstimados > 0 && (
-              <span>
-                Faltam {formatarMoeda(faltaParaMeta)} (~{diasEstimados} dias guardando {formatarMoeda(depositoDiarioAtual)}/dia)
+              <span className="text-texto-3">
+                Faltam <strong className="text-texto-2 font-mono">{formatarMoeda(faltaParaMeta)}</strong> • ~{diasEstimados} dias a {formatarMoeda(depositoDiarioAtual)}/dia
               </span>
             )}
             {faltaParaMeta === 0 && (
@@ -201,11 +201,12 @@ export const CaixaManutencaoView: React.FC = () => {
         </div>
 
         {/* Botões de Ação */}
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
+        <div className="mt-5 flex flex-col sm:grid sm:grid-cols-2 gap-2.5">
           <Button
             variante="secundario"
             onClick={() => setModalAporteAberto(true)}
             icone={<Plus className="size-4" />}
+            className="w-full justify-center"
           >
             Aportar Valor
           </Button>
@@ -213,6 +214,7 @@ export const CaixaManutencaoView: React.FC = () => {
             variante="primario"
             onClick={() => setModalGastoAberto(true)}
             icone={<Wrench className="size-4" />}
+            className="w-full justify-center"
           >
             Gastar da Reserva
           </Button>

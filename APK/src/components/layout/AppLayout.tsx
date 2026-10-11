@@ -60,11 +60,11 @@ export function AppLayout() {
   }, [location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-bg-0 text-texto-1 selection:bg-laranja-500/30">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-bg-0 text-texto-1 selection:bg-laranja-500/30">
       <SidebarNav />
 
-      <main className="flex-1 flex flex-col min-w-0 pb-24 lg:pb-8">
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-bg-1/80 backdrop-blur-md border-b border-line sticky top-0 z-30">
+      <main className="flex-1 flex flex-col min-w-0 pb-32 lg:pb-8">
+        <header className="lg:hidden flex items-center justify-between px-4 pb-3 pt-[calc(max(env(safe-area-inset-top,0px),0px)+0.75rem)] bg-bg-1/90 backdrop-blur-md border-b border-line sticky top-0 z-30">
           <div className="flex items-center gap-2.5">
             <img src="/logo-96.png" alt={APP_NAME} className="size-8 rounded-lg object-contain" />
             <span className="font-extrabold text-base tracking-tight texto-gradiente">{APP_NAME}</span>

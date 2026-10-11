@@ -17,6 +17,15 @@ import {
   ArrowDownLeft,
 } from 'lucide-react';
 
+function formatarValorCompacto(centavos: number): string {
+  const reais = Math.round(centavos / 100);
+  const sinal = reais > 0 ? '+' : '';
+  if (Math.abs(reais) >= 1000) {
+    return `${sinal}${(reais / 1000).toFixed(1).replace('.', ',')}k`;
+  }
+  return `${sinal}${reais}`;
+}
+
 export const HistoricoView: React.FC = () => {
   const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'calendario'>('lista');
   const [mesAtual, setMesAtual] = useState<Date>(() => new Date());
@@ -97,14 +106,14 @@ export const HistoricoView: React.FC = () => {
   return (
     <div className="space-y-5 pb-20">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-texto-1">Histórico</h1>
           <p className="text-xs text-texto-3">Consulte todos os dias rodados e seus resultados</p>
         </div>
         <Button
           variante="secundario"
-          className="text-xs h-9 px-3 shrink-0"
+          className="text-xs h-9 px-3 self-start sm:self-auto shrink-0"
           icone={<Download className="size-4" />}
           onClick={handleExportarDias}
         >
@@ -251,10 +260,15 @@ export const HistoricoView: React.FC = () => {
           </div>
 
           {/* Células dos dias */}
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {diasDoMesCalendario.map((item) => {
               if (item.vazio) {
-                return <div key={item.key} className="h-14 rounded-lg bg-bg-3/30" />;
+                return (
+                  <div
+                    key={item.key}
+                    className="aspect-square min-h-[46px] sm:min-h-[56px] rounded-xl bg-bg-3/20"
+                  />
+                );
               }
 
               const dia = item.dadosDia;
@@ -267,27 +281,41 @@ export const HistoricoView: React.FC = () => {
                   type="button"
                   disabled={!rodou}
                   onClick={() => dia && setDiaSelecionadoId(dia.id)}
-                  className={`h-14 p-1 rounded-lg border text-left flex flex-col justify-between transition-all ${
+                  title={rodou ? `Dia ${item.diaNumero}: ${formatarMoeda(lucro)} de lucro` : `Dia ${item.diaNumero}`}
+                  className={`aspect-square min-h-[46px] sm:min-h-[56px] p-1 sm:p-1.5 rounded-xl border flex flex-col items-center justify-between transition-all ${
                     rodou
                       ? lucro > 0
-                        ? 'bg-emerald-500/15 border-emerald-500/30 hover:border-emerald-500/70'
-                        : 'bg-red-500/15 border-red-500/30 hover:border-red-500/70'
-                      : 'bg-bg-3/50 border-line/30 opacity-60'
+                        ? 'bg-emerald-500/15 border-emerald-500/40 hover:border-emerald-500 shadow-sm cursor-pointer'
+                        : 'bg-red-500/15 border-red-500/40 hover:border-red-500 shadow-sm cursor-pointer'
+                      : 'bg-bg-3/40 border-line/20 opacity-50 cursor-default'
                   }`}
                 >
-                  <span className="text-[11px] font-bold text-texto-2">{item.diaNumero}</span>
-                  {rodou && (
+                  <span className={`text-[11px] sm:text-xs font-bold ${rodou ? 'text-texto-1' : 'text-texto-3'}`}>
+                    {item.diaNumero}
+                  </span>
+                  {rodou ? (
                     <span
-                      className={`text-[9px] font-mono font-black truncate ${
+                      className={`text-[9px] sm:text-[10px] font-mono font-black leading-tight text-center ${
                         lucro > 0 ? 'text-emerald-400' : 'text-negativo'
                       }`}
                     >
-                      {formatarMoeda(lucro)}
+                      {formatarValorCompacto(lucro)}
                     </span>
+                  ) : (
+                    <span className="size-1" />
                   )}
                 </button>
               );
             })}
+          </div>
+
+          <div className="flex items-center justify-center gap-4 text-[11px] text-texto-3 pt-2 border-t border-line/40">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-emerald-400" /> Dias com lucro
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-red-400" /> Dias no negativo
+            </span>
           </div>
         </Card>
       )}

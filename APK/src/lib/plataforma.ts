@@ -58,6 +58,11 @@ export async function inicializarAppNativo() {
     await StatusBar.setStyle({ style: Style.Dark });
     if (Capacitor.getPlatform() === 'android') {
       await StatusBar.setBackgroundColor({ color: '#0A0A0A' });
+      try {
+        await StatusBar.setOverlaysWebView({ overlay: false });
+      } catch {
+        // Silencioso se não suportado na versão do SO
+      }
     }
   } catch (err) {
     console.warn('[Meta Driver Nativo] Erro ao inicializar barras:', err);

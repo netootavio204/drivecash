@@ -315,17 +315,18 @@ export const ConfiguracoesView: React.FC = () => {
           Exporte uma cópia completa de todos os seus lançamentos e metas em JSON ou restaure em outro aparelho.
         </p>
 
-        <div className="grid grid-cols-2 gap-3 pt-1">
+        <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 pt-1">
           <Button
             variante="secundario"
             icone={<Download className="size-4" />}
             onClick={handleExportarBackup}
             carregando={processandoBackup}
+            className="w-full justify-center text-xs sm:text-sm"
           >
             Exportar Backup
           </Button>
 
-          <label className="inline-flex items-center justify-center font-bold text-sm h-11 px-4 rounded-xl border border-line bg-bg-2 text-texto-1 hover:border-laranja-500/50 cursor-pointer transition-all">
+          <label className="btn btn-secundario w-full justify-center text-xs sm:text-sm cursor-pointer">
             <Upload className="size-4 mr-2" />
             <span>Restaurar JSON</span>
             <input
