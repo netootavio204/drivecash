@@ -50,7 +50,7 @@ export function Modal({
             aria-labelledby={tituloId}
             tabIndex={-1}
             className={cn(
-              'card card-destaque relative w-full max-w-md p-6 outline-none',
+              'card card-destaque relative w-full max-w-md p-4 sm:p-6 outline-none max-h-[90dvh] overflow-y-auto box-border',
               className,
             )}
             initial={{ opacity: 0, scale: 0.94, y: 12 }}
@@ -66,14 +66,14 @@ export function Modal({
                 type="button"
                 onClick={aoFechar}
                 aria-label="Fechar"
-                className="-mr-2 -mt-2 grid size-11 place-items-center rounded-full text-texto-2 hover:bg-white/5 hover:text-texto-1"
+                className="-mr-1 -mt-1 grid size-10 place-items-center rounded-full text-texto-2 hover:bg-white/5 hover:text-texto-1"
               >
                 <X aria-hidden className="size-5" />
               </button>
             </div>
-            {descricao && <p className="text-sm text-texto-3 -mt-2 mb-3">{descricao}</p>}
+            {descricao && <p className="text-xs sm:text-sm text-texto-3 -mt-2 mb-3">{descricao}</p>}
             <div className="text-texto-2">{children}</div>
-            {rodape && <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">{rodape}</div>}
+            {rodape && <div className="mt-5 w-full">{rodape}</div>}
           </motion.div>
         </div>
       )}
