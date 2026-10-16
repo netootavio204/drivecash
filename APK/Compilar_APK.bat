@@ -39,12 +39,12 @@ cd ..
 
 echo.
 echo [3/3] Copiando APK gerado para a pasta principal...
-copy /y "android\app\build\outputs\apk\debug\app-debug.apk" "MetaDriver-v1.0.1.apk" > nul
+copy /y "android\app\build\outputs\apk\debug\app-debug.apk" "MetaDriver-v1.1.0.apk" > nul
 
 echo.
 echo ========================================================
 echo  APK gerado com SUCESSO!
-echo  Arquivo: APK\MetaDriver-v1.0.1.apk
+echo  Arquivo: APK\MetaDriver-v1.1.0.apk
 echo ========================================================
 echo.
 pause

@@ -7,6 +7,7 @@ import { useCategorias, useCriarLancamento, useExcluirLancamento } from './api';
 import { useSaldoPrincipal, useSaldoManutencao } from '@/features/caixa/api';
 import { useDiaAtual } from '@/features/dia/api';
 import { formatarMoeda } from '@/lib/money';
+import { dataHojeISO } from '@/lib/datas';
 import { traduzirErro } from '@/lib/erros';
 import { toast } from '@/components/ui/Toast';
 import {
@@ -20,6 +21,7 @@ import {
   MoreHorizontal,
   Wallet,
   AlertCircle,
+  Clock,
 } from 'lucide-react';
 
 interface SaidaRapidaSheetProps {
@@ -51,6 +53,11 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
   const [valorCentavos, setValorCentavos] = useState<number>(0);
   const [categoriaIdSelecionada, setCategoriaIdSelecionada] = useState<string | null>(null);
   const [origemCaixa, setOrigemCaixa] = useState<'principal' | 'manutencao'>('principal');
+  const [dataRef, setDataRef] = useState<string>(dataHojeISO());
+  const [horarioSaida, setHorarioSaida] = useState<string>(
+    new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  );
+  const [editarDataHora, setEditarDataHora] = useState<boolean>(false);
   const [observacao, setObservacao] = useState<string>('');
   const [erroMsg, setErroMsg] = useState<string | null>(null);
 
@@ -82,6 +89,10 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
 
     setErroMsg(null);
 
+    const [hora, min] = (horarioSaida || '12:00').split(':');
+    const ocorridoData = new Date(`${dataRef}T${hora.padStart(2, '0')}:${min ? min.padStart(2, '0') : '00'}:00`);
+    const ocorridoEm = !isNaN(ocorridoData.getTime()) ? ocorridoData.toISOString() : new Date().toISOString();
+
     try {
       const lancamentoCriado = await criarLancamento({
         caixaId: destinoCaixaId,
@@ -90,6 +101,8 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
         valorCentavos,
         categoriaId: categoriaId || null,
         descricao: observacao.trim() || null,
+        dataReferencia: dataRef,
+        ocorridoEm,
       });
 
       const valorFormatado = formatarMoeda(valorCentavos);
@@ -135,6 +148,40 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
             <span>{erroMsg}</span>
           </div>
         )}
+
+        {/* Barra Compacta de Data e Horário */}
+        <div className="p-2.5 rounded-lg bg-bg-2 border border-line/60 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-texto-2 flex items-center gap-1.5">
+              <Clock className="size-3.5 text-laranja-400" />
+              {dataRef === dataHojeISO() ? 'Hoje' : dataRef} às {horarioSaida}
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditarDataHora(!editarDataHora)}
+              className="text-laranja-400 hover:text-laranja-300 font-bold transition-colors underline text-xs"
+            >
+              {editarDataHora ? 'Fechar ajuste' : 'Editar data/horário'}
+            </button>
+          </div>
+
+          {editarDataHora && (
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line/40">
+              <Input
+                rotulo="Data da despesa"
+                type="date"
+                value={dataRef}
+                onChange={(e) => setDataRef(e.target.value)}
+              />
+              <Input
+                rotulo="Horário"
+                type="time"
+                value={horarioSaida}
+                onChange={(e) => setHorarioSaida(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Campo Grande de Valor */}
         <MoneyInput

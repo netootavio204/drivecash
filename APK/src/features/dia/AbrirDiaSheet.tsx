@@ -23,6 +23,11 @@ export const AbrirDiaSheet: React.FC<AbrirDiaSheetProps> = ({ aberto, aoFechar }
   const { mutateAsync: abrirDia, isPending } = useAbrirDia();
 
   const [kmInicial, setKmInicial] = useState<string>('');
+  const [dataReferencia, setDataReferencia] = useState<string>(dataHojeISO());
+  const [horarioInicio, setHorarioInicio] = useState<string>(
+    new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  );
+  const [editarDataHora, setEditarDataHora] = useState<boolean>(false);
   const [ajustandoSaldo, setAjustandoSaldo] = useState<boolean>(false);
   const [saldoPersonalizado, setSaldoPersonalizado] = useState<number>(saldoCentavos);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
@@ -30,14 +35,19 @@ export const AbrirDiaSheet: React.FC<AbrirDiaSheetProps> = ({ aberto, aoFechar }
   const handleConfirmar = async () => {
     setErroMsg(null);
     try {
-      const dataRef = dataHojeISO();
+      const dataRef = dataReferencia || dataHojeISO();
       const km = kmInicial.trim() ? parseInt(kmInicial, 10) : null;
       const saldoParaAbrir = ajustandoSaldo ? saldoPersonalizado : saldoCentavos;
+
+      const [hora, min] = (horarioInicio || '00:00').split(':');
+      const abertoEmData = new Date(`${dataRef}T${hora.padStart(2, '0')}:${min ? min.padStart(2, '0') : '00'}:00`);
+      const abertoEmISO = !isNaN(abertoEmData.getTime()) ? abertoEmData.toISOString() : undefined;
 
       await abrirDia({
         dataReferencia: dataRef,
         kmInicial: km,
         saldoConfirmadoCentavos: saldoParaAbrir,
+        abertoEm: abertoEmISO,
       });
 
       // Efeito de confetes ao bater ponto
@@ -52,8 +62,8 @@ export const AbrirDiaSheet: React.FC<AbrirDiaSheetProps> = ({ aberto, aoFechar }
         // silencioso
       }
 
-      const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      toast.sucesso(`Ponto batido às ${agora}. Bom trabalho!`);
+      const horaExibicao = horarioInicio || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      toast.sucesso(`Ponto registrado às ${horaExibicao} (${dataRef}). Bom trabalho!`);
       aoFechar();
     } catch (err) {
       console.error('[Meta Driver] Erro ao abrir dia:', err);
@@ -119,6 +129,45 @@ export const AbrirDiaSheet: React.FC<AbrirDiaSheetProps> = ({ aberto, aoFechar }
             onChange={(e) => setKmInicial(e.target.value)}
             ajuda="Pode deixar em branco se não quiser marcar agora."
           />
+        </div>
+
+        {/* Data e Horário (Automático ou Retroativo) */}
+        <div className="p-3 rounded-md bg-bg-2 border border-line/60 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-texto-2 flex items-center gap-1.5">
+              <Clock className="size-3.5 text-laranja-400" />
+              Início: {dataReferencia === dataHojeISO() ? 'Hoje' : dataReferencia} às {horarioInicio}
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditarDataHora(!editarDataHora)}
+              className="text-laranja-400 hover:text-laranja-300 font-bold transition-colors underline text-xs"
+            >
+              {editarDataHora ? 'Ocultar ajuste' : 'Alterar data/hora'}
+            </button>
+          </div>
+
+          {editarDataHora && (
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line/40">
+              <Input
+                rotulo="Data de início"
+                type="date"
+                value={dataReferencia}
+                onChange={(e) => setDataReferencia(e.target.value)}
+              />
+              <Input
+                rotulo="Horário de início"
+                type="time"
+                value={horarioInicio}
+                onChange={(e) => setHorarioInicio(e.target.value)}
+              />
+              {dataReferencia !== dataHojeISO() && (
+                <div className="col-span-2 text-[11px] text-amber-400 font-medium">
+                  ⚠️ Atenção: você está abrindo o dia com uma data retroativa ({dataReferencia}).
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Botão de Ação Principal */}

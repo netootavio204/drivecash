@@ -69,10 +69,12 @@ export function useAbrirDia() {
       dataReferencia,
       kmInicial,
       saldoConfirmadoCentavos,
+      abertoEm,
     }: {
       dataReferencia: string;
       kmInicial?: number | null;
       saldoConfirmadoCentavos?: number | null;
+      abertoEm?: string | null;
     }) => {
       if (!user) throw new Error('NAO_AUTENTICADO');
 
@@ -87,6 +89,13 @@ export function useAbrirDia() {
       });
 
       if (!error && data) {
+        if (abertoEm) {
+          await supabase
+            .from('dias_trabalho')
+            .update({ aberto_em: abertoEm })
+            .eq('id', data.id);
+          data.aberto_em = abertoEm;
+        }
         return data;
       }
 
@@ -118,15 +127,18 @@ export function useAbrirDia() {
           : saldoBase;
 
       // 2. Inserir dia de trabalho
+      const payloadDia: Record<string, unknown> = {
+        user_id: user.id,
+        data_referencia: dataReferencia,
+        status: 'aberto',
+        saldo_abertura_centavos: saldoAbertura,
+        km_inicial: kmInicial,
+      };
+      if (abertoEm) payloadDia.aberto_em = abertoEm;
+
       const { data: novoDia, error: erroDia } = await supabase
         .from('dias_trabalho')
-        .insert({
-          user_id: user.id,
-          data_referencia: dataReferencia,
-          status: 'aberto',
-          saldo_abertura_centavos: saldoAbertura,
-          km_inicial: kmInicial,
-        })
+        .insert(payloadDia as unknown as Database['public']['Tables']['dias_trabalho']['Insert'])
         .select()
         .single();
 
@@ -361,6 +373,23 @@ export function useFecharDia() {
         .eq('dia_id', diaId)
         .maybeSingle();
 
+      // Preserva pausas existentes no resumo ao fechar o dia
+      const { data: diaAtualDados } = await supabase
+        .from('dias_trabalho')
+        .select('resumo')
+        .eq('id', diaId)
+        .maybeSingle();
+
+      const resumoAnterior = (diaAtualDados?.resumo as Record<string, unknown>) || {};
+      const pausasAnteriores = Array.isArray(resumoAnterior.pausas) ? [...(resumoAnterior.pausas as PausaJornada[])] : [];
+      const agoraISO = new Date().toISOString();
+      const pausasFinalizadas = pausasAnteriores.map((p) => (p.fim ? p : { ...p, fim: agoraISO }));
+
+      const resumoCongelado = {
+        ...((resumoDia as unknown as Record<string, unknown>) || {}),
+        pausas: pausasFinalizadas,
+      };
+
       const saldoFechamento =
         (saldoInformadoCentavos !== null && saldoInformadoCentavos !== undefined
           ? saldoInformadoCentavos
@@ -371,7 +400,7 @@ export function useFecharDia() {
         .from('dias_trabalho')
         .update({
           status: 'fechado',
-          fechado_em: new Date().toISOString(),
+          fechado_em: agoraISO,
           saldo_calculado_centavos: saldoCalc,
           saldo_informado_centavos: saldoInformadoCentavos,
           saldo_fechamento_centavos: saldoFechamento,
@@ -380,7 +409,7 @@ export function useFecharDia() {
           km_final: kmFinal,
           minutos_online: minutosOnline,
           observacoes: observacoes,
-          resumo: (resumoDia as unknown as Database['public']['Tables']['dias_trabalho']['Row']['resumo']) || {},
+          resumo: resumoCongelado as unknown as Database['public']['Tables']['dias_trabalho']['Row']['resumo'],
         })
         .eq('id', diaId)
         .select()
@@ -495,6 +524,145 @@ export function useLotePlataformas() {
       queryClient.invalidateQueries({ queryKey: ['dia'] });
       queryClient.invalidateQueries({ queryKey: ['caixas'] });
       queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
+    },
+  });
+}
+
+export interface PausaJornada {
+  inicio: string; // ISO string
+  fim?: string | null; // ISO string quando retomado
+  motivo?: string; // 'intervalo', 'almoco', 'descanso', etc.
+}
+
+/** Obtém a lista de pausas salvas no resumo do dia */
+export function obterPausasDoDia(dia?: DiaTrabalho | null): PausaJornada[] {
+  if (!dia || !dia.resumo || typeof dia.resumo !== 'object') return [];
+  const resumo = dia.resumo as Record<string, unknown>;
+  if (Array.isArray(resumo.pausas)) {
+    return resumo.pausas as PausaJornada[];
+  }
+  return [];
+}
+
+/** Verifica se o dia está em intervalo (pausa aberta no momento) */
+export function estaEmPausa(dia?: DiaTrabalho | null): boolean {
+  const pausas = obterPausasDoDia(dia);
+  if (pausas.length === 0) return false;
+  const ultima = pausas[pausas.length - 1];
+  return !ultima.fim;
+}
+
+/** Calcula o total acumulado em minutos de todas as pausas do dia */
+export function calcularMinutosPausa(dia?: DiaTrabalho | null): number {
+  const pausas = obterPausasDoDia(dia);
+  let totalMs = 0;
+  const agora = Date.now();
+
+  for (const p of pausas) {
+    const ini = new Date(p.inicio).getTime();
+    if (isNaN(ini)) continue;
+    const fim = p.fim ? new Date(p.fim).getTime() : agora;
+    if (fim > ini) {
+      totalMs += (fim - ini);
+    }
+  }
+
+  return Math.round(totalMs / 60000);
+}
+
+/** Hook para iniciar uma pausa/intervalo no dia de trabalho */
+export function usePausarDia() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ diaId, motivo }: { diaId: string; motivo?: string }) => {
+      if (!user) throw new Error('NAO_AUTENTICADO');
+
+      const { data: dia, error: errGet } = await supabase
+        .from('dias_trabalho')
+        .select('resumo')
+        .eq('id', diaId)
+        .single();
+
+      if (errGet) throw errGet;
+
+      const resumoObj = (dia?.resumo as Record<string, unknown>) || {};
+      const pausasAtuais = Array.isArray(resumoObj.pausas) ? [...(resumoObj.pausas as PausaJornada[])] : [];
+
+      // Só cria uma nova pausa se a última já foi finalizada
+      const ultima = pausasAtuais[pausasAtuais.length - 1];
+      if (!ultima || ultima.fim) {
+        pausasAtuais.push({
+          inicio: new Date().toISOString(),
+          fim: null,
+          motivo: motivo || 'intervalo',
+        });
+      }
+
+      const { data, error } = await supabase
+        .from('dias_trabalho')
+        .update({
+          resumo: { ...resumoObj, pausas: pausasAtuais } as unknown as Database['public']['Tables']['dias_trabalho']['Row']['resumo'],
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq('id', diaId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dia'] });
+    },
+  });
+}
+
+/** Hook para finalizar pausa e retomar a rodagem normal */
+export function useRetomarDia() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ diaId }: { diaId: string }) => {
+      if (!user) throw new Error('NAO_AUTENTICADO');
+
+      const { data: dia, error: errGet } = await supabase
+        .from('dias_trabalho')
+        .select('resumo')
+        .eq('id', diaId)
+        .single();
+
+      if (errGet) throw errGet;
+
+      const resumoObj = (dia?.resumo as Record<string, unknown>) || {};
+      const pausasAtuais = Array.isArray(resumoObj.pausas) ? [...(resumoObj.pausas as PausaJornada[])] : [];
+
+      // Finaliza a última pausa aberta
+      const agoraISO = new Date().toISOString();
+      const pausasAtualizadas = pausasAtuais.map((p, idx) => {
+        if (idx === pausasAtuais.length - 1 && !p.fim) {
+          return { ...p, fim: agoraISO };
+        }
+        return p;
+      });
+
+      const { data, error } = await supabase
+        .from('dias_trabalho')
+        .update({
+          resumo: { ...resumoObj, pausas: pausasAtualizadas } as unknown as Database['public']['Tables']['dias_trabalho']['Row']['resumo'],
+          atualizado_em: agoraISO,
+        })
+        .eq('id', diaId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dia'] });
     },
   });
 }

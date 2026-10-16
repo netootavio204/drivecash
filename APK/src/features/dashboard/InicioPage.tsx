@@ -11,12 +11,23 @@ import {
   RotateCcw,
   CheckSquare,
   ShieldAlert,
+  Coffee,
+  Play,
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Estados';
 import { useAuth } from '@/features/auth/AuthContext';
-import { useDiaAtual, useResumoDia, useUltimoDiaFechado, useReabrirDia } from '@/features/dia/api';
+import {
+  useDiaAtual,
+  useResumoDia,
+  useUltimoDiaFechado,
+  useReabrirDia,
+  usePausarDia,
+  useRetomarDia,
+  estaEmPausa,
+  calcularMinutosPausa,
+} from '@/features/dia/api';
 import { useSaldoPrincipal, useSaldoManutencao } from '@/features/caixa/api';
 import { useLancamentosDia } from '@/features/lancamentos/api';
 import { usePrioridades } from '@/features/prioridades/api';
@@ -47,10 +58,35 @@ export function InicioPage() {
   const { data: ultimoFechado } = useUltimoDiaFechado();
   const { data: prioridades = [] } = usePrioridades();
   const { mutateAsync: reabrirDia, isPending: reabrindoDia } = useReabrirDia();
+  const { mutateAsync: pausarDia, isPending: pausandoDia } = usePausarDia();
+  const { mutateAsync: retomarDia, isPending: retomandoDia } = useRetomarDia();
 
   const { saldoCentavos: caixaAtual, isLoading: carregandoSaldo } = useSaldoPrincipal();
   const { saldoCentavos: saldoReserva } = useSaldoManutencao();
   const { data: lancamentos = [], isLoading: carregandoLancamentos } = useLancamentosDia(diaAtual?.id);
+
+  const emPausa = estaEmPausa(diaAtual);
+  const minutosPausa = calcularMinutosPausa(diaAtual);
+
+  const handlePausar = async () => {
+    if (!diaAtual?.id) return;
+    try {
+      await pausarDia({ diaId: diaAtual.id, motivo: 'intervalo' });
+      toast.info('Dia pausado para intervalo. Bom descanso!');
+    } catch (err) {
+      toast.erro(traduzirErro(err));
+    }
+  };
+
+  const handleRetomar = async () => {
+    if (!diaAtual?.id) return;
+    try {
+      await retomarDia({ diaId: diaAtual.id });
+      toast.sucesso('Rodagem retomada! Boas corridas!');
+    } catch (err) {
+      toast.erro(traduzirErro(err));
+    }
+  };
 
   // Gamificação e Metas (Fase 5)
   const { data: gamificacao } = useGamificacaoUsuario();
@@ -130,14 +166,40 @@ export function InicioPage() {
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs font-bold text-texto-2">
-          <span className="text-laranja-400">
-            {temDiaAberto ? '🟢 Dia Aberto' : '⚪ Dia Fechado'}
+          <span className={emPausa ? 'text-amber-400 font-extrabold flex items-center gap-1' : 'text-laranja-400'}>
+            {!temDiaAberto ? '⚪ Dia Fechado' : emPausa ? '☕ Em Intervalo' : '🟢 Dia Aberto'}
           </span>
         </div>
       </div>
 
       {temDiaAberto ? (
         <>
+          {/* Card de Dia em Pausa / Intervalo */}
+          {emPausa && (
+            <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-500/40 text-texto-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                  <Coffee className="size-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-amber-400">Jornada em Intervalo / Pausa</h4>
+                  <p className="text-xs text-texto-2">
+                    Aproveite seu descanso ou almoço. Total acumulado em pausas hoje: <strong className="text-texto-1">{minutosPausa} min</strong>.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variante="primario"
+                tamanho="md"
+                icone={<Play className="size-4 fill-white" />}
+                onClick={handleRetomar}
+                carregando={retomandoDia}
+                className="w-full sm:w-auto shrink-0 shadow-neon font-bold"
+              >
+                Retomar Rodagem
+              </Button>
+            </div>
+          )}
           {/* Alerta Discreto de Caixa Negativo (se houver) */}
           {caixaNegativo && (
             <div className="p-3 rounded-md bg-negativo/15 border border-negativo/40 text-negativo text-xs flex items-center justify-between gap-2 shadow-sm">
@@ -321,12 +383,35 @@ export function InicioPage() {
             </Card>
           )}
 
-          {/* Atalho para Fechar o Dia */}
-          <div className="pt-2">
+          {/* Ações de Fechamento ou Pausa da Jornada */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            {!emPausa ? (
+              <Button
+                variante="secundario"
+                tamanho="lg"
+                icone={<Coffee className="size-4 text-amber-400" />}
+                onClick={handlePausar}
+                carregando={pausandoDia}
+                className="font-bold border-line/80 hover:border-amber-500/50"
+              >
+                PAUSAR DIA (INTERVALO)
+              </Button>
+            ) : (
+              <Button
+                variante="primario"
+                tamanho="lg"
+                icone={<Play className="size-4 fill-white" />}
+                onClick={handleRetomar}
+                carregando={retomandoDia}
+                className="shadow-neon font-bold"
+              >
+                RETOMAR RODAGEM
+              </Button>
+            )}
+
             <Button
               variante="secundario"
               tamanho="lg"
-              bloco
               onClick={() => setSheetFecharDia(true)}
             >
               FECHAR O DIA

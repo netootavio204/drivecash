@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Auditoria e Novas Funcionalidades — Meta Driver v1.1.0</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 15mm 15mm 15mm 15mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0d0f12;
+      color: #e6edf3;
+      line-height: 1.5;
+      font-size: 13px;
+      padding: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* HEADER */
+    .header {
+      background: linear-gradient(135deg, #161b22 0%, #1f242c 100%);
+      border: 1px solid #30363d;
+      border-top: 4px solid #ff7a00;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ff7a00, #ff2d2d);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 22px;
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(255, 122, 0, 0.4);
+    }
+
+    .title-group h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .title-group p {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+
+    .status-pill {
+      background: rgba(35, 134, 54, 0.2);
+      border: 1px solid #2ea043;
+      color: #3fb950;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #3fb950;
+    }
+
+    /* CARDS */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ff7a00;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #8b949e;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* FEATURE LIST */
+    .feature-item {
+      background: #0d1117;
+      border-left: 3px solid #ff7a00;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+
+    .feature-header {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f0f6fc;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    /* TABLE */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    th {
+      text-align: left;
+      font-size: 11px;
+      color: #8b949e;
+      text-transform: uppercase;
+      padding: 8px 10px;
+      border-bottom: 1px solid #30363d;
+      background: #0d1117;
+    }
+
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #21262d;
+      font-size: 12px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tag-ok {
+      background: rgba(46, 160, 67, 0.15);
+      color: #3fb950;
+      border: 1px solid rgba(46, 160, 67, 0.4);
+    }
+
+    .tag-orange {
+      background: rgba(255, 122, 0, 0.15);
+      color: #ff7a00;
+      border: 1px solid rgba(255, 122, 0, 0.4);
+    }
+
+    /* FOOTER */
+    .footer {
+      text-align: center;
+      padding-top: 14px;
+      border-top: 1px solid #30363d;
+      font-size: 11px;
+      color: #8b949e;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="logo-area">
+        <div class="logo-badge">MD</div>
+        <div class="title-group">
+          <h1>Meta Driver — Relatório de Auditoria</h1>
+          <p>Compilação APK v1.1.0 • Produção & Testes em Campo</p>
+        </div>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        Compilado com Sucesso
+      </div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="grid-4" style="margin-bottom: 16px;">
+      <div class="stat-box">
+        <div class="stat-label">Versão do App</div>
+        <div class="stat-value">v1.1.0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Build Code</div>
+        <div class="stat-value">3 (Release)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Tamanho APK</div>
+        <div class="stat-value">8.09 MB</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Target SDK</div>
+        <div class="stat-value">Android 14 (34)</div>
+      </div>
+    </div>
+
+    <!-- NOVAS FUNCIONALIDADES -->
+    <div class="card">
+      <div class="card-title">✨ Novas Funcionalidades Implementadas</div>
+      
+      <div class="feature-item">
+        <div class="feature-header">
+          <span>1. Calculadora Inteligente de Divisão de Ganhos (Ex: 99 / Uber)</span>
+          <span class="tag tag-ok">Pronto</span>
+        </div>
+        <div class="feature-desc">
+          Resolve o caso real onde a corrida teve cupom ou desconto para o passageiro. O motorista informa o total (ex: R$ 12) e registra quanto recebeu direto em mãos (Bolso, Pix ou Cartão) e quanto ficou retido no saldo do app 99. Conta corridas com precisão unitária sem duplicar.
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-header">
+          <span>2. Quilometragem Real por Corrida (KM Produtivo vs Deslocamento)</span>
+          <span class="tag tag-ok">Pronto</span>
+        </div>
+        <div class="feature-desc">
+          Novo campo opcional de KM na corrida com passageiro. Elimina a distorção do R$/km do final do dia, separando os quilômetros remunerados dos deslocamentos vazios e viagens particulares do motorista.
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-header">
+          <span>3. Controle de Pausas e Intervalos durante a Rodagem</span>
+          <span class="tag tag-ok">Pronto</span>
+        </div>
+        <div class="feature-desc">
+          Botões dinâmicos "PAUSAR DIA" e "RETOMAR RODAGEM" no painel principal. Permite almoçar, tomar café ou descansar. As pausas são cronometradas e deduzidas automaticamente das horas trabalhadas no fechamento do dia.
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-header">
+          <span>4. Ajuste Flexível de Data e Horário (Abertura e Lançamentos Retroativos)</span>
+          <span class="tag tag-ok">Pronto</span>
+        </div>
+        <div class="feature-desc">
+          Modo automático e manual tanto na abertura do dia (para quando esquecer de abrir o ponto de manhã) quanto nas entradas e saídas (para registrar despesas e corridas retroativas sem travar o aplicativo).
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDITORIA DE DESIGN E RESPONSIVIDADE VERTICAL -->
+    <div class="card">
+      <div class="card-title">📱 Auditoria de Interface Mobile (Design Vertical)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Elemento / Tela</th>
+            <th>Diagnóstico & Ajuste Realizado</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>EntradaRapidaSheet</strong></td>
+            <td>Botão principal encurtado para evitar quebra de linha em telas estreitas (360px). Truncate automático nos botões de modo.</td>
+            <td><span class="tag tag-ok">Aprovado</span></td>
+          </tr>
+          <tr>
+            <td><strong>Cards de Destino</strong></td>
+            <td>Grid de 3 colunas (Bolso, Pix, Cartão) com ícones compactos e alinhamento vertical harmônico.</td>
+            <td><span class="tag tag-ok">Aprovado</span></td>
+          </tr>
+          <tr>
+            <td><strong>Banner de Pausa</strong></td>
+            <td>Destaque âmbar com pulso suave e botão de retomada touch-friendly adaptado a uma mão.</td>
+            <td><span class="tag tag-ok">Aprovado</span></td>
+          </tr>
+          <tr>
+            <td><strong>Abertura de Dia</strong></td>
+            <td>Seletor retrátil de data/hora que não polui a tela e só expande se o motorista desejar.</td>
+            <td><span class="tag tag-ok">Aprovado</span></td>
+          </tr>
+          <tr>
+            <td><strong>Rolagem e Teclado</strong></td>
+            <td>Safe-area padding ajustado para navegação por gestos do Android e abertura de teclado virtual.</td>
+            <td><span class="tag tag-ok">Aprovado</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AUDITORIA DE SEGURANÇA E ARQUITETURA -->
+    <div class="card">
+      <div class="card-title">🛡️ Auditoria de Segurança e Integridade de Dados</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Camada</th>
+            <th>Mecanismo de Proteção</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Banco de Dados (Supabase)</strong></td>
+            <td>Dados gravados em colunas nativas (`km`, `resumo->pausas`, `ocorrido_em`). Migration retrocompatível 0007 adicionada.</td>
+            <td><span class="tag tag-ok">Zero Quebra</span></td>
+          </tr>
+          <tr>
+            <td><strong>Fallback de Meio de Pagamento</strong></td>
+            <td>Tratamento inteligente no SDK que evita violações de constraint em bancos que ainda não rodaram migrations.</td>
+            <td><span class="tag tag-ok">Protegido</span></td>
+          </tr>
+          <tr>
+            <td><strong>Sincronia Web / APK</strong></td>
+            <td>Código-fonte espelhado em `src/` e `APK/src/`. Build do Vite e Gradle compilados sem erros.</td>
+            <td><span class="tag tag-ok">100% Sincronizado</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <span>Meta Driver © 2026 — Gestão Financeira Inteligente para Motoristas</span>
+      <span>Arquivo: <code>APK/MetaDriver-v1.1.0.apk</code></span>
+    </div>
+  </div>
+</body>
+</html>

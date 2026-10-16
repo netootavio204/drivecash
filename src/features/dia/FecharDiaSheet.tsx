@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { MoneyInput } from '@/components/ui/MoneyInput';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { useFecharDia, useLotePlataformas, useResumoDia, type DiaTrabalho } from './api';
+import { useFecharDia, useLotePlataformas, useResumoDia, calcularMinutosPausa, type DiaTrabalho } from './api';
 import { useSaldoPrincipal, useSaldoManutencao, useConfiguracaoManutencao } from '@/features/caixa/api';
 import { usePlataformas, useCategorias } from '@/features/lancamentos/api';
 import { formatarMoeda } from '@/lib/money';
@@ -51,10 +51,23 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
   const [modoLote, setModoLote] = useState<'somar' | 'substituir'>('somar');
 
   // Passo 2: Odômetro e Conferência
+  const minutosPausa = useMemo(() => calcularMinutosPausa(diaAtual), [diaAtual]);
   const [kmFinal, setKmFinal] = useState<string>('');
   const [horasTrabalhadas, setHorasTrabalhadas] = useState<string>('');
   const [saldoInformadoCentavos, setSaldoInformadoCentavos] = useState<number | null>(null);
   const [conferenciaPulada, setConferenciaPulada] = useState<boolean>(false);
+
+  // Pré-calcula horas trabalhadas descontando as pausas automaticamente
+  React.useEffect(() => {
+    if (diaAtual?.aberto_em && !horasTrabalhadas) {
+      const inicio = new Date(diaAtual.aberto_em).getTime();
+      const agora = Date.now();
+      const totalBrutoMinutos = Math.max(0, Math.round((agora - inicio) / 60000));
+      const totalLiquidoMinutos = Math.max(0, totalBrutoMinutos - minutosPausa);
+      const horas = (totalLiquidoMinutos / 60).toFixed(1);
+      setHorasTrabalhadas(horas);
+    }
+  }, [diaAtual, minutosPausa]);
 
   // Passo 3: Depósito na Reserva de Manutenção
   const valorPadraoManutencao = configManutencao?.deposito_manutencao_centavos ?? 2000;
@@ -282,7 +295,7 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
                 placeholder="Ex: 8.5"
                 value={horasTrabalhadas}
                 onChange={(e) => setHorasTrabalhadas(e.target.value)}
-                dica="Opcional (horas online)"
+                dica={minutosPausa > 0 ? `Descontados ${minutosPausa}m em pausas` : 'Opcional (horas online)'}
               />
             </div>
 
