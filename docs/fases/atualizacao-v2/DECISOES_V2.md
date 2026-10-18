@@ -7,10 +7,10 @@
 |---|---|---|---|---|
 | D-V2-01 | Valor que o dono digita hoje (líquido do aceite × total do recibo) | Total do recibo nas corridas novas | V2.1 | Total do recibo da corrida (valor total pago pelo passageiro) |
 | D-V2-02 | Taxa99: digitar × estimar | Digitar (opcional) | V2.1 / V2.5 | Digitar taxa quando quiser (opcional) |
-| D-V2-03 | Bancos que aparecem | Inter, Mercado Pago, Santander + outros | V2.3 | Pix no Inter e cartão no Mercado Pago (configurável/provisório) |
-| D-V2-04 | Regra de classificação do histórico | Dinheiro→Bolso; Pix→banco padrão; app→App 99; sem info→Bolso | V2.3 | _(pendente)_ |
-| D-V2-05 | Onde fica a reserva de manutenção | Em um banco escolhido | V2.3 | _(pendente)_ |
-| D-V2-06 | "Crédito no app": transferência × despesa | Transferência (recarga) | V2.1 / V2.3 | Retenção no saldo do app com repasse semanal para o Inter |
+| D-V2-03 | Bancos que aparecem | Inter, Mercado Pago, Santander + outros | V2.3 | Banco Inter e Mercado Pago no catálogo inicial ativo (editável nas configurações) |
+| D-V2-04 | Regra de classificação do histórico | Dinheiro→Bolso; Pix→banco padrão; app→App 99; sem info→Bolso | V2.3 | Não classificar em massa o histórico antigo agora (campos de local nulos no legado) |
+| D-V2-05 | Onde fica a reserva de manutenção | Em um banco escolhido | V2.3 | Provável no Mercado Pago (configurável nas opções de locais) |
+| D-V2-06 | "Crédito no app": transferência × despesa | Transferência (recarga) | V2.1 / V2.3 | Manter histórico antigo como despesa comum; novas recargas via transferências |
 | D-V2-07 | Reparo de corridas divididas (A fundir × B zerar × não reparar) | B (zerar a contagem das extras) | V2.4 | _(pendente)_ |
 | D-V2-08 | Restante no app: pago no app × cupom | Pago no app, cupom em 1 toque | V2.4 | _(pendente)_ |
 | D-V2-09 | Pacote Taxa Zero: cadastrar? | Conforme a cidade do dono | V2.1 / V2.5 | Sem taxa municipal; taxa 99 estimada em ~10-11% (dinâmica/variável, sem taxa zero fixa) |
@@ -48,6 +48,10 @@
 | 2026-10-18 | V2.2 | Tipos de intervalo: Descanso, Refeição, Abastecimento e Outro | Resposta do dono (Fase V2.2) |
 | 2026-10-18 | V2.2 | Permitido lançar corrida mesmo em intervalo (com aviso discreto) | Resposta do dono (Fase V2.2) |
 | 2026-10-18 | V2.2 | Lembrete automático de intervalo desligado | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.3 | Locais iniciais: Bolso, App 99, Banco Inter e Mercado Pago com saldos de abertura R$ 0,00 | Resposta do dono (Fase V2.3) |
+| 2026-10-18 | V2.3 | Histórico antigo não será classificado em massa agora para evitar divergências e garantir 100% de segurança dos dados | Resposta do dono (Fase V2.3) |
+| 2026-10-18 | V2.3 | Despesas antigas de 'Crédito no app' mantidas como despesas comuns | Resposta do dono (Fase V2.3) |
+| 2026-10-18 | V2.3 | Cartões de saldo visíveis no Início abaixo do Caixa Atual com alerta discreto em vermelho para App 99 negativo | Resposta do dono (Fase V2.3) |
 
 ## Mudanças em relação ao PRD v2
 | Data | Fase | O que mudou | Motivo |

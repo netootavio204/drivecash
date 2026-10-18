@@ -20,6 +20,7 @@ import { ConfiguracoesView } from '@/pages/ConfiguracoesView';
 import { HistoricoView } from '@/features/historico/HistoricoView';
 import { RelatoriosView } from '@/features/relatorios/RelatoriosView';
 import { VeiculoView } from '@/features/veiculo/VeiculoView';
+import { MeuDinheiroPage } from '@/features/locais/MeuDinheiroPage';
 
 export const router = createBrowserRouter([
 
@@ -83,7 +84,10 @@ export const router = createBrowserRouter([
             path: 'caixa',
             element: <CaixaView />,
           },
-
+          {
+            path: 'meu-dinheiro',
+            element: <MeuDinheiroPage />,
+          },
           {
             path: 'caixa/manutencao',
             element: <CaixaManutencaoView />,

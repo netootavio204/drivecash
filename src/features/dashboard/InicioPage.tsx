@@ -33,6 +33,7 @@ import {
 import { Star, Target } from 'lucide-react';
 import { TopoAcoesRapidas } from '@/components/layout/TopoAcoesRapidas';
 import { BarraMetaV2 } from '@/features/metas/BarraMetaV2';
+import { CartoesSaldoLocais } from '@/features/locais/CartoesSaldoLocais';
 import { AbrirDiaSheet } from '@/features/dia/AbrirDiaSheet';
 import { FecharDiaSheet } from '@/features/dia/FecharDiaSheet';
 import { EntradaRapidaSheet } from '@/features/lancamentos/EntradaRapidaSheet';
@@ -229,6 +230,9 @@ export function InicioPage() {
             </div>
           </Card>
 
+          {/* Cartões de Saldo por Local (Bolso, App 99, Bancos) — DriveCash V2 */}
+          <CartoesSaldoLocais />
+
           {/* Indicadores do dia em grade */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard rotulo="Receita Bruta" centavos={receita} tom="positivo" />
@@ -380,6 +384,9 @@ export function InicioPage() {
               </Button>
             </div>
           </Card>
+
+          {/* Cartões de Saldo por Local (Bolso, App 99, Bancos) — DriveCash V2 */}
+          <CartoesSaldoLocais />
 
           {/* Opção de Reabrir Último Dia (se fechou recentemente) */}
           {ultimoFechado && (
