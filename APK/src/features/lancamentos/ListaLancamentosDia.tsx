@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { Lancamento } from './api';
-import { useExcluirLancamento, useEditarLancamento } from './api';
+import { useExcluirCorridaV2, useEditarLancamento } from './api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { MoneyInput } from '@/components/ui/MoneyInput';
@@ -26,7 +26,7 @@ export const ListaLancamentosDia: React.FC<ListaLancamentosDiaProps> = ({
   lancamentos,
   carregando,
 }) => {
-  const { mutateAsync: excluirLancamento } = useExcluirLancamento();
+  const { mutateAsync: excluirCorrida } = useExcluirCorridaV2();
   const { mutateAsync: editarLancamento } = useEditarLancamento();
 
   const [editando, setEditando] = useState<Lancamento | null>(null);
@@ -36,16 +36,8 @@ export const ListaLancamentosDia: React.FC<ListaLancamentosDiaProps> = ({
 
   const handleExcluir = async (lanc: Lancamento) => {
     try {
-      await excluirLancamento(lanc.id);
-      toast.info('Lançamento excluído', {
-        acao: {
-          rotulo: 'Desfazer',
-          aoClicar: async () => {
-            // Em uma exclusão lógica, podemos reverter se necessário
-            toast.sucesso('Lançamento restaurado');
-          },
-        },
-      });
+      await excluirCorrida(lanc.id);
+      toast.info('Lançamento excluído com sucesso.');
     } catch {
       toast.erro('Não foi possível excluir o lançamento.');
     }
@@ -143,6 +135,11 @@ export const ListaLancamentosDia: React.FC<ListaLancamentosDiaProps> = ({
                   {lanc.qtd_corridas > 1 && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-bg-2 text-texto-2 border border-line/60 shrink-0">
                       {lanc.qtd_corridas} corridas
+                    </span>
+                  )}
+                  {lanc.qtd_corridas === 0 && ehEntrada && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
+                      Gorjeta / Extra
                     </span>
                   )}
                 </div>

@@ -14,7 +14,8 @@ import {
 } from './api';
 import { useLocaisDinheiro } from '@/features/locais/api';
 import { useSaldoPrincipal, useConfiguracaoManutencao } from '@/features/caixa/api';
-import { usePlataformas, useCategorias } from '@/features/lancamentos/api';
+import { usePlataformas, useCategorias, useLancamentosDia } from '@/features/lancamentos/api';
+import { ModalRelatorioPdf } from '@/features/relatorios/ModalRelatorioPdf';
 import { formatarMoeda } from '@/lib/money';
 import { traduzirErro } from '@/lib/erros';
 import { toast } from '@/components/ui/Toast';
@@ -36,6 +37,7 @@ import {
   Building2,
   Clock,
   Gauge,
+  FileText,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -56,8 +58,12 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
   const { data: plataformas } = usePlataformas();
   const { data: categoriasEntrada } = useCategorias('entrada');
 
+  const { data: lancamentosDia = [] } = useLancamentosDia(diaAtual.id);
   const { mutateAsync: fecharDiaV2, isPending: fechandoDia } = useFecharDiaV2();
   const { mutateAsync: salvarLote, isPending: salvandoLote } = useLotePlataformas();
+
+  const [diaFechadoSucesso, setDiaFechadoSucesso] = useState(false);
+  const [modalPdfAberto, setModalPdfAberto] = useState(false);
 
   // Passo 1: Lote por plataforma
   const [valoresPlataforma, setValoresPlataforma] = useState<Record<string, { valor: number; corridas: number }>>({});
@@ -178,6 +184,64 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
     }
   };
 
+  // Dados consolidados para o Relatório PDF V2
+  const dadosPdf = useMemo(() => ({
+    dataReferencia: diaAtual.data_referencia,
+    ganhoBrutoCentavos: ganhoBruto,
+    totalTaxasCentavos: totalTaxas,
+    taxaPlataformaCentavos: taxaPlataforma,
+    taxaMaquininhaCentavos: taxaMaquininha,
+    taxaEfetivaPct: taxaEfetivaPct,
+    ganhoLiquidoCentavos: ganhoLiquido,
+    despesasOperacionaisCentavos: despesasOperacionais,
+    lucroLiquidoCentavos: lucroCalculado,
+    reservaManutencaoCentavos: manutencaoPulada ? 0 : depositoManutencaoCentavos,
+    corridas: totalCorridas,
+    ticketMedioCentavos: totalCorridas > 0 ? Math.round(ganhoBruto / totalCorridas) : 0,
+    horasOnline: horasLiquidasNum,
+    minutosPausa,
+    horasLiquidas: horasLiquidasNum,
+    ganhoPorHoraLiquidoCentavos: ganhoPorHoraLiquido,
+    kmRodados: kmPercorrido,
+    lucroPorKmCentavos: lucroPorKm,
+    saldosLocais: locais.map((l) => ({
+      nome: l.nome,
+      tipo: l.tipo,
+      saldoCentavos: saldosInformados[l.id] ?? l.saldo_centavos ?? 0,
+    })),
+    lancamentos: lancamentosDia.map((l: any) => ({
+      hora: new Date(l.ocorrido_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      descricao: l.descricao || l.categorias?.nome || 'Lançamento',
+      tipo: l.tipo,
+      categoria: l.categorias?.nome,
+      meio: l.meio_pagamento,
+      valorCentavos: l.valor_centavos,
+    })),
+    observacoes: observacoes.trim() || null,
+  }), [
+    diaAtual,
+    ganhoBruto,
+    totalTaxas,
+    taxaPlataforma,
+    taxaMaquininha,
+    taxaEfetivaPct,
+    ganhoLiquido,
+    despesasOperacionais,
+    lucroCalculado,
+    manutencaoPulada,
+    depositoManutencaoCentavos,
+    totalCorridas,
+    horasLiquidasNum,
+    minutosPausa,
+    ganhoPorHoraLiquido,
+    kmPercorrido,
+    lucroPorKm,
+    locais,
+    saldosInformados,
+    lancamentosDia,
+    observacoes,
+  ]);
+
   // Submeter Fechamento Definitivo V2
   const handleConfirmarFechamento = async () => {
     setErroMsg(null);
@@ -204,13 +268,13 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
       });
 
       confetti({
-        particleCount: 100,
-        spread: 70,
+        particleCount: 120,
+        spread: 80,
         origin: { y: 0.6 },
       });
 
       toast.sucesso('Dia fechado com sucesso!');
-      aoFechar();
+      setDiaFechadoSucesso(true);
     } catch (err) {
       console.error('[DriveCash] Erro ao fechar dia:', err);
       setErroMsg(traduzirErro(err));
@@ -220,30 +284,93 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
   return (
     <Sheet
       aberto={aberto}
-      aoFechar={aoFechar}
+      aoFechar={() => {
+        setDiaFechadoSucesso(false);
+        aoFechar();
+      }}
       titulo="Fechar o Dia de Trabalho"
-      descricao={`Passo ${passo} de 4 — ${
-        passo === 1
-          ? 'Resumo de Faturamento e Taxas'
-          : passo === 2
-          ? 'Odômetro e Conferência por Local'
-          : passo === 3
-          ? 'Reserva de Manutenção'
-          : 'Confirmação e Fechamento V2'
-      }`}
+      descricao={
+        diaFechadoSucesso
+          ? 'Concluído com Sucesso'
+          : `Passo ${passo} de 4 — ${
+              passo === 1
+                ? 'Resumo de Faturamento e Taxas'
+                : passo === 2
+                ? 'Odômetro e Conferência por Local'
+                : passo === 3
+                ? 'Reserva de Manutenção'
+                : 'Confirmação e Fechamento V2'
+            }`
+      }
     >
-      <div className="space-y-6">
-        {/* Barra de Progresso do Fechamento */}
-        <div className="grid grid-cols-4 gap-1.5">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i <= passo ? 'bg-laranja-500 shadow-[0_0_8px_rgba(255,122,0,0.5)]' : 'bg-bg-3'
-              }`}
-            />
-          ))}
+      {diaFechadoSucesso ? (
+        <div className="py-6 px-2 text-center space-y-6">
+          <div className="size-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-bounce">
+            <Check className="size-8" />
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-xl font-black text-texto-1 tracking-tight">
+              Turno Fechado com Sucesso!
+            </h3>
+            <p className="text-xs text-texto-3 max-w-sm mx-auto">
+              Seus saldos foram atualizados e o histórico do dia foi gravado com segurança total.
+            </p>
+          </div>
+
+          <div className="p-4 bg-bg-2 rounded-xl border border-line/70 max-w-sm mx-auto space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-texto-3">Ganho Líquido:</span>
+              <span className="font-bold text-texto-1 font-mono">{formatarMoeda(ganhoLiquido)}</span>
+            </div>
+            <div className="flex justify-between text-xs border-t border-line/40 pt-2">
+              <span className="text-texto-3 font-bold">Lucro Final do Dia:</span>
+              <span className="font-black text-positivo font-mono text-sm">{formatarMoeda(lucroCalculado)}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5 max-w-sm mx-auto pt-2">
+            <Button
+              variante="primario"
+              tamanho="lg"
+              className="w-full justify-center shadow-lg shadow-laranja-500/20"
+              onClick={() => setModalPdfAberto(true)}
+              icone={<FileText className="size-4" />}
+            >
+              📄 Gerar / Baixar Relatório em PDF
+            </Button>
+
+            <Button
+              variante="secundario"
+              className="w-full justify-center"
+              onClick={() => {
+                setDiaFechadoSucesso(false);
+                aoFechar();
+              }}
+            >
+              Concluir e Voltar ao Início
+            </Button>
+          </div>
+
+          <ModalRelatorioPdf
+            aberto={modalPdfAberto}
+            aoFechar={() => setModalPdfAberto(false)}
+            dados={dadosPdf}
+          />
         </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Barra de Progresso do Fechamento */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i <= passo ? 'bg-laranja-500 shadow-[0_0_8px_rgba(255,122,0,0.5)]' : 'bg-bg-3'
+                }`}
+              />
+            ))}
+          </div>
 
         {erroMsg && (
           <div className="p-3 bg-negativo/15 border border-negativo/30 rounded-md text-negativo text-xs flex items-center gap-2">
@@ -722,6 +849,7 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
           </div>
         )}
       </div>
+      )}
 
       {/* Modal de Lançamento em Lote por Plataforma */}
       <Modal

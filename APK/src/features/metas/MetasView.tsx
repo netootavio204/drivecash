@@ -20,6 +20,7 @@ import {
 } from './api';
 import { usePrioridades } from '@/features/prioridades/api';
 import { Medalha } from '@/components/gamificacao/Medalha';
+import { BarraMetaV2 } from './BarraMetaV2';
 import {
   Target,
   Trophy,
@@ -172,30 +173,7 @@ export const MetasView: React.FC = () => {
   // Cálculos do Ciclo Atual
   const valorAlvo = metaDoPeriodo?.valor_alvo ?? 30000;
   const valorAlcancado = cicloDaMeta?.valor_alcancado ?? 0;
-  const pctAlcancado = Math.min(200, Math.round((valorAlcancado / Math.max(1, valorAlvo)) * 100));
-
-  const valorBronze = Math.round((valorAlvo * (metaDoPeriodo?.pct_bronze ?? 70)) / 100);
-  const valorPrata = valorAlvo;
-  const valorOuro = Math.round((valorAlvo * (metaDoPeriodo?.pct_ouro ?? 130)) / 100);
-
   const nivelAtual = cicloDaMeta?.nivel_atual ?? 'nenhum';
-
-  // Mensagem de incentivo
-  const mensagemIncentivo = useMemo(() => {
-    if (valorAlcancado < valorBronze) {
-      const falta = valorBronze - valorAlcancado;
-      return `Faltam ${formatarMoeda(falta)} para garantir o Bronze 🥉`;
-    }
-    if (valorAlcancado < valorPrata) {
-      const falta = valorPrata - valorAlcancado;
-      return `Faltam ${formatarMoeda(falta)} para bater a Meta (Prata 🥈)`;
-    }
-    if (valorAlcancado < valorOuro) {
-      const falta = valorOuro - valorAlcancado;
-      return `Sensacional! Faltam ${formatarMoeda(falta)} para o Ouro 🥇`;
-    }
-    return '🎉 Incrível! Você superou o Ouro máximo!';
-  }, [valorAlcancado, valorBronze, valorPrata, valorOuro]);
 
   return (
     <div className="space-y-5 pb-20">
@@ -281,53 +259,16 @@ export const MetasView: React.FC = () => {
             </div>
           </div>
 
-          {/* Barra de Progresso com os Marcos 🥉 🥈 🥇 */}
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between text-xs font-medium text-texto-3">
-              <span>{pctAlcancado}% da meta</span>
-              <span className="text-laranja-400 font-bold">{mensagemIncentivo}</span>
-            </div>
-
-            <div className="relative h-3 w-full bg-bg-3 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-500 rounded-full ${
-                  nivelAtual === 'ouro'
-                    ? 'bg-gradient-to-r from-laranja-500 to-vermelho-500 shadow-[0_0_12px_rgba(255,45,45,0.6)]'
-                    : nivelAtual === 'prata'
-                    ? 'bg-gradient-to-r from-laranja-400 to-laranja-500 shadow-[0_0_10px_rgba(255,122,0,0.5)]'
-                    : 'bg-laranja-500'
-                }`}
-                style={{ width: `${Math.min(100, (pctAlcancado / 130) * 100)}%` }}
-              />
-
-              {/* Linhas de marcação dos 70% e 100% */}
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-white/40"
-                style={{ left: `${(70 / 130) * 100}%` }}
-                title="Bronze (70%)"
-              />
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-white/70"
-                style={{ left: `${(100 / 130) * 100}%` }}
-                title="Prata (100%)"
-              />
-            </div>
-
-            {/* Valores dos Marcos */}
-            <div className="flex justify-between text-[11px] text-texto-3 pt-1">
-              <div className="text-left">
-                <span className="text-[#CD7F32] font-bold">🥉 {formatarMoeda(valorBronze)}</span>
-                <p className="text-[10px]">70%</p>
-              </div>
-              <div className="text-center">
-                <span className="text-[#C9CED6] font-bold">🥈 {formatarMoeda(valorPrata)}</span>
-                <p className="text-[10px]">100% (Alvo)</p>
-              </div>
-              <div className="text-right">
-                <span className="text-[#FFC83D] font-bold">🥇 {formatarMoeda(valorOuro)}</span>
-                <p className="text-[10px]">130%</p>
-              </div>
-            </div>
+          {/* Barra de Progresso com os Marcos 🥉 🥈 🥇 (V2) */}
+          <div className="pt-2">
+            <BarraMetaV2
+              titulo={metaDoPeriodo.titulo}
+              valorAlvo={valorAlvo}
+              valorAlcancado={valorAlcancado}
+              pctBronze={metaDoPeriodo.pct_bronze}
+              pctPrata={metaDoPeriodo.pct_prata}
+              pctOuro={metaDoPeriodo.pct_ouro}
+            />
           </div>
 
           {/* Botões de Ação na Meta */}

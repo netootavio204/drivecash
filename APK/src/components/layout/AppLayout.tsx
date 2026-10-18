@@ -1,16 +1,10 @@
-import { useEffect } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { SidebarNav } from './SidebarNav';
-import { Toaster, toast } from '@/components/ui/Toast';
+import { Toaster } from '@/components/ui/Toast';
 import { APP_NAME } from '@/lib/config';
 import { useAuth } from '@/features/auth/AuthContext';
 import { LogOut } from 'lucide-react';
-import {
-  inicializarAppNativo,
-  configurarBotaoVoltar,
-  configurarDeepLinks,
-} from '@/lib/plataforma';
 
 function BotaoSairMobile() {
   const { signOut } = useAuth();
@@ -26,39 +20,6 @@ function BotaoSairMobile() {
 }
 
 export function AppLayout() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Inicializar StatusBar escura e Splash Screen
-    inicializarAppNativo();
-
-    // Configurar o botão Voltar nativo do Android
-    const removerVoltar = configurarBotaoVoltar(
-      () => location.pathname === '/',
-      () => navigate(-1),
-      () => toast.info('Toque de novo para sair do Meta Driver')
-    );
-
-    // Configurar Deep Links (ex: metadriver://recuperar-senha)
-    const removerDeepLinks = configurarDeepLinks((url) => {
-      try {
-        const urlObj = new URL(url);
-        const rota = urlObj.pathname || urlObj.host;
-        if (rota) {
-          navigate(rota.startsWith('/') ? rota : `/${rota}`);
-        }
-      } catch (err) {
-        console.warn('[Meta Driver Deep Link] Erro ao processar URL:', err);
-      }
-    });
-
-    return () => {
-      removerVoltar();
-      removerDeepLinks();
-    };
-  }, [location.pathname, navigate]);
-
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-bg-0 text-texto-1 selection:bg-laranja-500/30">
       <SidebarNav />

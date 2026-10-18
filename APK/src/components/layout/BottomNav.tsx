@@ -18,6 +18,7 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   const rotasMais = [
+    { caminho: '/meu-dinheiro', rotulo: 'Meu Dinheiro', icone: Wallet },
     { caminho: '/prioridades', rotulo: textos.nav.prioridades, icone: CheckSquare },
     { caminho: '/caixa/manutencao', rotulo: textos.nav.manutencao, icone: ShieldCheck },
     { caminho: '/conquistas', rotulo: textos.nav.conquistas, icone: Target },
