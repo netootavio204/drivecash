@@ -10,6 +10,8 @@ import { formatarMoeda } from '@/lib/money';
 import { dataHojeISO } from '@/lib/datas';
 import { traduzirErro } from '@/lib/erros';
 import { toast } from '@/components/ui/Toast';
+import { useRecursos } from '@/lib/useRecursos';
+import { useLocaisDinheiro } from '@/features/locais/api';
 import {
   Fuel,
   Utensils,
@@ -61,6 +63,20 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
   const [observacao, setObservacao] = useState<string>('');
   const [erroMsg, setErroMsg] = useState<string | null>(null);
 
+  const { recursos } = useRecursos();
+  const { data: locais = [] } = useLocaisDinheiro();
+  const [localIdSelecionado, setLocalIdSelecionado] = useState<string>(() => {
+    return localStorage.getItem('drivesh_ultimo_local_saida') || '';
+  });
+
+  // Garante que haja um local selecionado se existirem locais
+  React.useEffect(() => {
+    if (locais.length > 0 && !locais.some((l) => l.id === localIdSelecionado)) {
+      const padrao = locais.find((l) => l.tipo === 'bolso') || locais[0];
+      if (padrao) setLocalIdSelecionado(padrao.id);
+    }
+  }, [locais, localIdSelecionado]);
+
   // Selecionar combustível como padrão inicial
   const categoriaId = React.useMemo(() => {
     if (categoriaIdSelecionada) return categoriaIdSelecionada;
@@ -94,6 +110,10 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
     const ocorridoEm = !isNaN(ocorridoData.getTime()) ? ocorridoData.toISOString() : new Date().toISOString();
 
     try {
+      if (localIdSelecionado) {
+        localStorage.setItem('drivesh_ultimo_local_saida', localIdSelecionado);
+      }
+
       const lancamentoCriado = await criarLancamento({
         caixaId: destinoCaixaId,
         diaId: diaAtual?.id || null,
@@ -103,6 +123,7 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
         descricao: observacao.trim() || null,
         dataReferencia: dataRef,
         ocorridoEm,
+        localId: recursos.locais && localIdSelecionado ? localIdSelecionado : null,
       });
 
       const valorFormatado = formatarMoeda(valorCentavos);
@@ -216,6 +237,34 @@ export const SaidaRapidaSheet: React.FC<SaidaRapidaSheetProps> = ({ aberto, aoFe
             Reserva Manutenção ({formatarMoeda(saldoManutencao)})
           </button>
         </div>
+
+        {/* Seletor "Pago com" (Local do Dinheiro) — DriveCash V2 */}
+        {recursos.locais && locais.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wide text-texto-2">
+              Pago com
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {locais.map((loc) => {
+                const isSel = loc.id === localIdSelecionado;
+                return (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onClick={() => setLocalIdSelecionado(loc.id)}
+                    className={`py-2 px-2.5 rounded-md text-xs font-bold border transition-all text-left truncate ${
+                      isSel
+                        ? 'border-laranja-500 bg-laranja-500/15 text-laranja-400 shadow-sm'
+                        : 'border-line/60 bg-bg-2 text-texto-2 hover:bg-bg-3'
+                    }`}
+                  >
+                    {loc.nome}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Grade de Categorias com Ícones */}
         <div className="flex flex-col gap-1.5">

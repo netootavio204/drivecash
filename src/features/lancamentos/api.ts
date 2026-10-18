@@ -140,6 +140,7 @@ export function useCriarLancamento() {
       km,
       dataReferencia,
       ocorridoEm,
+      localId,
     }: {
       caixaId: string;
       diaId?: string | null;
@@ -153,6 +154,7 @@ export function useCriarLancamento() {
       km?: number | null;
       dataReferencia?: string | null;
       ocorridoEm?: string | null;
+      localId?: string | null;
     }) => {
       if (!user) throw new Error('NAO_AUTENTICADO');
 
@@ -179,12 +181,25 @@ export function useCriarLancamento() {
 
       if (dataReferencia) payload.data_referencia = dataReferencia;
       if (ocorridoEm) payload.ocorrido_em = ocorridoEm;
+      if (localId) payload.local_id = localId;
 
       let { data, error } = await supabase
         .from('lancamentos')
         .insert(payload as unknown as Database['public']['Tables']['lancamentos']['Insert'])
         .select()
         .single();
+
+      // Fallback seguro se o banco ainda não tiver a coluna local_id
+      if (error && error.message.includes('local_id')) {
+        delete payload.local_id;
+        const retry = await supabase
+          .from('lancamentos')
+          .insert(payload as unknown as Database['public']['Tables']['lancamentos']['Insert'])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       // Fallback seguro se o banco ainda não tiver constraint de 'cartao'
       if (error && error.message.includes('meio_pagamento') && meioPg === 'cartao') {
