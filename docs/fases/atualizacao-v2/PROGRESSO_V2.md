@@ -7,8 +7,8 @@
 |---|---|---|---|---|
 | V2.1 | Auditoria, backup e rede de segurança | ✅ concluída | 2026-10-18 | 2026-10-18 |
 | V2.2 | Barras de meta, botões no topo e Intervalo | ✅ concluída | 2026-10-18 | 2026-10-18 |
-| V2.3 | Locais do dinheiro: bolso, app 99 e bancos | 🟡 pronta para aprovação | — | — |
-| V2.4 | Corrida única com pagamento em partes | ⏳ não iniciada | — | — |
+| V2.3 | Locais do dinheiro: bolso, app 99 e bancos | ✅ concluída | 2026-10-18 | 2026-10-18 |
+| V2.4 | Corrida única com pagamento em partes | 🟡 em andamento | — | — |
 | V2.5 | Taxas, ganho líquido e fechamento v2 | ⏳ não iniciada | — | — |
 | V2.6 | Relatório PDF, publicação e APK | ⏳ não iniciada | — | — |
 
