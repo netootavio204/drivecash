@@ -280,6 +280,53 @@ export function useAtualizarSaldoInicial() {
   });
 }
 
+/** Hook para atualizar configuração e taxas de maquininha de um local */
+export function useAtualizarConfiguracaoLocal() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      localId,
+      saldoInicialCentavos,
+      taxaDebitoPct,
+      taxaCreditoPct,
+      taxaPixPct,
+      prazoCreditoDias,
+    }: {
+      localId: string;
+      saldoInicialCentavos?: number;
+      taxaDebitoPct?: number;
+      taxaCreditoPct?: number;
+      taxaPixPct?: number;
+      prazoCreditoDias?: number;
+    }) => {
+      if (!user) throw new Error('NAO_AUTENTICADO');
+
+      const payload: Record<string, any> = {};
+      if (saldoInicialCentavos !== undefined) payload.saldo_inicial_centavos = saldoInicialCentavos;
+      if (taxaDebitoPct !== undefined) payload.taxa_debito_pct = taxaDebitoPct;
+      if (taxaCreditoPct !== undefined) payload.taxa_credito_pct = taxaCreditoPct;
+      if (taxaPixPct !== undefined) payload.taxa_pix_pct = taxaPixPct;
+      if (prazoCreditoDias !== undefined) payload.prazo_credito_dias = prazoCreditoDias;
+
+      const { data, error } = await (supabase as any)
+        .from('locais_dinheiro')
+        .update(payload)
+        .eq('id', localId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locais'] });
+    },
+  });
+}
+
 /** Busca histórico recente de transferências entre locais */
 export function useHistoricoTransferencias() {
   const { user } = useAuth();

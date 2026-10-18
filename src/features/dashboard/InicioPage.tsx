@@ -19,10 +19,11 @@ import { useAuth } from '@/features/auth/AuthContext';
 import {
   useDiaAtual,
   useResumoDia,
+  useResumoDiaV2,
   useUltimoDiaFechado,
   useReabrirDia,
 } from '@/features/dia/api';
-import { useSaldoPrincipal, useSaldoManutencao } from '@/features/caixa/api';
+import { useSaldoPrincipal } from '@/features/caixa/api';
 import { useLancamentosDia } from '@/features/lancamentos/api';
 import { usePrioridades } from '@/features/prioridades/api';
 import {
@@ -51,12 +52,12 @@ export function InicioPage() {
 
   const { data: diaAtual, isLoading: carregandoDia } = useDiaAtual();
   const { data: resumoDia } = useResumoDia(diaAtual?.id);
+  const { data: resumoV2 } = useResumoDiaV2(diaAtual?.id);
   const { data: ultimoFechado } = useUltimoDiaFechado();
   const { data: prioridades = [] } = usePrioridades();
   const { mutateAsync: reabrirDia, isPending: reabrindoDia } = useReabrirDia();
 
   const { saldoCentavos: caixaAtual, isLoading: carregandoSaldo } = useSaldoPrincipal();
-  const { saldoCentavos: saldoReserva } = useSaldoManutencao();
   const { data: lancamentos = [], isLoading: carregandoLancamentos } = useLancamentosDia(diaAtual?.id);
 
   // Gamificação e Metas (Fase 5)
@@ -90,10 +91,13 @@ export function InicioPage() {
       })
     : '';
 
-  // Cálculos de resumo
-  const receita = resumoDia ? Number(resumoDia.receita_centavos) : 0;
-  const despesas = resumoDia ? Number(resumoDia.despesas_centavos) : 0;
-  const lucro = receita - despesas;
+  // Cálculos de resumo V2
+  const ganhoBruto = resumoV2 ? Number(resumoV2.ganho_bruto_centavos) : resumoDia ? Number(resumoDia.receita_centavos) : 0;
+  const totalTaxas = resumoV2 ? Number(resumoV2.taxas_total_centavos) : 0;
+  const taxaEfetivaPct = resumoV2 ? Number(resumoV2.taxa_efetiva_pct) : 0;
+  const ganhoLiquido = resumoV2 ? Number(resumoV2.ganho_liquido_centavos) : ganhoBruto;
+  const despesas = resumoV2 ? Number(resumoV2.despesas_operacionais_centavos) : resumoDia ? Number(resumoDia.despesas_centavos) : 0;
+  const lucro = resumoV2 ? Number(resumoV2.lucro_liquido_centavos) : ganhoBruto - despesas;
 
   if (carregandoDia && carregandoSaldo) {
     return (
@@ -233,12 +237,16 @@ export function InicioPage() {
           {/* Cartões de Saldo por Local (Bolso, App 99, Bancos) — DriveCash V2 */}
           <CartoesSaldoLocais />
 
-          {/* Indicadores do dia em grade */}
+          {/* Indicadores do dia em grade — DriveCash V2 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard rotulo="Receita Bruta" centavos={receita} tom="positivo" />
-            <StatCard rotulo="Despesas" centavos={despesas} tom="negativo" />
-            <StatCard rotulo="Lucro Líquido" centavos={lucro} tom="marca" />
-            <StatCard rotulo="Reserva Manut." centavos={saldoReserva} tom="neutro" />
+            <StatCard rotulo="Ganho Bruto" centavos={ganhoBruto} tom="positivo" />
+            <StatCard
+              rotulo={taxaEfetivaPct > 0 ? `Taxas (${taxaEfetivaPct.toFixed(1)}%)` : "Taxas Plataforma"}
+              centavos={totalTaxas}
+              tom="negativo"
+            />
+            <StatCard rotulo="Ganho Líquido" centavos={ganhoLiquido} tom="marca" />
+            <StatCard rotulo="Lucro Líquido" centavos={lucro} tom="positivo" />
           </div>
 
           {/* Card das 3 Metas Compactas (Dia, Semana, Mês) — DriveCash V2 */}
