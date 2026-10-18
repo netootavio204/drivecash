@@ -11,6 +11,7 @@ import {
   Settings,
   ShieldCheck,
   LogOut,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { APP_NAME } from '@/lib/config';
 import { textos } from '@/lib/textos';
@@ -21,6 +22,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 export function SidebarNav() {
   const rotasPrincipais = [
     { caminho: '/', rotulo: textos.nav.inicio, icone: Home },
+    { caminho: '/meu-dinheiro', rotulo: 'Meu Dinheiro', icone: ArrowRightLeft },
     { caminho: '/caixa', rotulo: textos.nav.caixa, icone: Wallet },
     { caminho: '/caixa/manutencao', rotulo: textos.nav.manutencao, icone: ShieldCheck },
     { caminho: '/metas', rotulo: textos.nav.metas, icone: Target },

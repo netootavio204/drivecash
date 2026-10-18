@@ -8,6 +8,108 @@ import type { Database } from '@/lib/database.types';
 export type DiaTrabalho = Database['public']['Tables']['dias_trabalho']['Row'];
 export type ResumoDia = Database['public']['Views']['vw_resumo_dia']['Row'];
 
+export type ItemConferenciaLocal = {
+  local_id: string;
+  saldo_informado_centavos: number | null;
+};
+
+export type ParametrosFecharDiaV2 = {
+  diaId: string;
+  kmFinal?: number | null;
+  minutosOnline?: number | null;
+  depositoManutencaoCentavos?: number | null;
+  conferenciaLocais?: ItemConferenciaLocal[];
+  observacoes?: string | null;
+};
+
+export type ResumoDiaV2 = {
+  dia_id: string;
+  user_id: string;
+  data_referencia: string;
+  ganho_bruto_centavos: number;
+  corridas: number;
+  taxa_plataforma_centavos: number;
+  taxa_maquininha_centavos: number;
+  taxas_total_centavos: number;
+  ganho_liquido_centavos: number;
+  taxa_efetiva_pct: number;
+  despesas_operacionais_centavos: number;
+  lucro_liquido_centavos: number;
+  reserva_centavos: number;
+  ajustes_centavos: number;
+};
+
+/** Busca o resumo financeiro detalhado v2 do dia (com taxas discriminadas e ganho líquido) */
+export function useResumoDiaV2(diaId?: string | null) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['dia', diaId, 'resumo_v2'],
+    queryFn: async (): Promise<ResumoDiaV2 | null> => {
+      if (!diaId || !user) return null;
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('vw_resumo_dia_v2')
+          .select('*')
+          .eq('dia_id', diaId)
+          .maybeSingle();
+
+        if (!error && data) {
+          return {
+            dia_id: data.dia_id,
+            user_id: data.user_id,
+            data_referencia: data.data_referencia,
+            ganho_bruto_centavos: Number(data.ganho_bruto_centavos || 0),
+            corridas: Number(data.corridas || 0),
+            taxa_plataforma_centavos: Number(data.taxa_plataforma_centavos || 0),
+            taxa_maquininha_centavos: Number(data.taxa_maquininha_centavos || 0),
+            taxas_total_centavos: Number(data.taxas_total_centavos || 0),
+            ganho_liquido_centavos: Number(data.ganho_liquido_centavos || 0),
+            taxa_efetiva_pct: Number(data.taxa_efetiva_pct || 0),
+            despesas_operacionais_centavos: Number(data.despesas_operacionais_centavos || 0),
+            lucro_liquido_centavos: Number(data.lucro_liquido_centavos || 0),
+            reserva_centavos: Number(data.reserva_centavos || 0),
+            ajustes_centavos: Number(data.ajustes_centavos || 0),
+          };
+        }
+      } catch (e) {
+        console.warn('[DriveCash] vw_resumo_dia_v2 indisponível, usando fallback v1');
+      }
+
+      // Fallback seguro para vw_resumo_dia v1
+      const { data: v1 } = await supabase
+        .from('vw_resumo_dia')
+        .select('*')
+        .eq('dia_id', diaId)
+        .maybeSingle();
+
+      if (!v1) return null;
+
+      const receita = Number(v1.receita_centavos || 0);
+      const despesas = Number(v1.despesas_centavos || 0);
+
+      return {
+        dia_id: v1.dia_id,
+        user_id: v1.user_id,
+        data_referencia: v1.data_referencia,
+        ganho_bruto_centavos: receita,
+        corridas: Number(v1.corridas || 0),
+        taxa_plataforma_centavos: 0,
+        taxa_maquininha_centavos: 0,
+        taxas_total_centavos: 0,
+        ganho_liquido_centavos: receita,
+        taxa_efetiva_pct: 0,
+        despesas_operacionais_centavos: despesas,
+        lucro_liquido_centavos: receita - despesas,
+        reserva_centavos: Number(v1.reserva_centavos || 0),
+        ajustes_centavos: Number(v1.ajustes_centavos || 0),
+      };
+    },
+    enabled: !!diaId && !!user,
+  });
+}
+
 /** Busca o dia de trabalho atualmente aberto */
 export function useDiaAtual() {
   const { user } = useAuth();
@@ -570,6 +672,34 @@ export function calcularMinutosPausa(dia?: DiaTrabalho | null): number {
   return Math.round(totalMs / 60000);
 }
 
+/** Calcula o tempo líquido trabalhado (descontando as pausas) */
+export function calcularTempoLiquido(dia?: DiaTrabalho | null): {
+  minutosTotais: number;
+  minutosPausa: number;
+  minutosLiquidos: number;
+  horasFormatadas: string;
+} {
+  if (!dia) {
+    return { minutosTotais: 0, minutosPausa: 0, minutosLiquidos: 0, horasFormatadas: '0h00' };
+  }
+
+  const ini = new Date(dia.aberto_em).getTime();
+  const fim = dia.fechado_em ? new Date(dia.fechado_em).getTime() : Date.now();
+  const minutosTotais = isNaN(ini) ? 0 : Math.max(0, Math.round((fim - ini) / 60000));
+  const minutosPausa = calcularMinutosPausa(dia);
+  const minutosLiquidos = Math.max(0, minutosTotais - minutosPausa);
+
+  const horas = Math.floor(minutosLiquidos / 60);
+  const mins = minutosLiquidos % 60;
+
+  return {
+    minutosTotais,
+    minutosPausa,
+    minutosLiquidos,
+    horasFormatadas: `${horas}h${mins.toString().padStart(2, '0')}`,
+  };
+}
+
 /** Hook para iniciar uma pausa/intervalo no dia de trabalho */
 export function usePausarDia() {
   const queryClient = useQueryClient();
@@ -578,6 +708,19 @@ export function usePausarDia() {
   return useMutation({
     mutationFn: async ({ diaId, motivo }: { diaId: string; motivo?: string }) => {
       if (!user) throw new Error('NAO_AUTENTICADO');
+
+      // Tenta via RPC se a migração 0102 estiver ativa
+      try {
+        const { error: rpcErr } = await (supabase.rpc as any)('rpc_iniciar_intervalo', {
+          p_dia_id: diaId,
+          p_tipo: motivo || 'descanso',
+        });
+        if (!rpcErr) {
+          return { ok: true };
+        }
+      } catch (e) {
+        // Fallback para armazenamento em JSON no dia
+      }
 
       const { data: dia, error: errGet } = await supabase
         .from('dias_trabalho')
@@ -596,7 +739,7 @@ export function usePausarDia() {
         pausasAtuais.push({
           inicio: new Date().toISOString(),
           fim: null,
-          motivo: motivo || 'intervalo',
+          motivo: motivo || 'descanso',
         });
       }
 
@@ -627,6 +770,18 @@ export function useRetomarDia() {
   return useMutation({
     mutationFn: async ({ diaId }: { diaId: string }) => {
       if (!user) throw new Error('NAO_AUTENTICADO');
+
+      // Tenta via RPC se a migração 0102 estiver ativa
+      try {
+        const { error: rpcErr } = await (supabase.rpc as any)('rpc_encerrar_intervalo', {
+          p_dia_id: diaId,
+        });
+        if (!rpcErr) {
+          return { ok: true };
+        }
+      } catch (e) {
+        // Fallback para armazenamento em JSON no dia
+      }
 
       const { data: dia, error: errGet } = await supabase
         .from('dias_trabalho')
@@ -667,3 +822,115 @@ export function useRetomarDia() {
   });
 }
 
+/** RPC V2 para Fechar o Dia com encerramento de intervalos, conferência por local e snapshot V2 */
+export function useFecharDiaV2() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      diaId,
+      kmFinal,
+      minutosOnline,
+      depositoManutencaoCentavos,
+      conferenciaLocais = [],
+      observacoes,
+    }: ParametrosFecharDiaV2) => {
+      if (!user) throw new Error('NAO_AUTENTICADO');
+
+      try {
+        const { data, error } = await (supabase.rpc as any)('rpc_fechar_dia_v2', {
+          p_dia_id: diaId,
+          p_km_final: kmFinal ?? null,
+          p_minutos_online: minutosOnline ?? null,
+          p_deposito_manutencao_centavos: depositoManutencaoCentavos ?? 0,
+          p_conferencia_locais: conferenciaLocais,
+          p_observacoes: observacoes ?? null,
+        });
+
+        if (!error && data) {
+          return data;
+        }
+
+        if (error) {
+          const msg = error.message || '';
+          if (
+            msg.includes('KM_FINAL_INVALIDO') ||
+            msg.includes('DIA_JA_FECHADO') ||
+            msg.includes('DIA_NAO_ENCONTRADO')
+          ) {
+            throw error;
+          }
+          console.warn('[DriveCash] RPC rpc_fechar_dia_v2 falhou, tentando fallback v1:', msg);
+        }
+      } catch (e: any) {
+        if (
+          e.message?.includes('KM_FINAL_INVALIDO') ||
+          e.message?.includes('DIA_JA_FECHADO') ||
+          e.message?.includes('DIA_NAO_ENCONTRADO')
+        ) {
+          throw e;
+        }
+        console.warn('[DriveCash] Exceção em rpc_fechar_dia_v2, tentando fallback:', e);
+      }
+
+      // Fallback seguro para rpc_fechar_dia v1
+      const { data: dataV1, error: errorV1 } = await supabase.rpc('rpc_fechar_dia', {
+        p_dia_id: diaId,
+        p_saldo_informado_centavos: null,
+        p_deposito_manutencao_centavos: depositoManutencaoCentavos ?? 0,
+        p_km_final: kmFinal ?? null,
+        p_minutos_online: minutosOnline ?? null,
+        p_observacoes: observacoes ?? null,
+      });
+
+      if (errorV1) throw errorV1;
+      return dataV1;
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ['dia'] });
+      queryClient.invalidateQueries({ queryKey: ['caixas'] });
+      queryClient.invalidateQueries({ queryKey: ['locais'] });
+      queryClient.invalidateQueries({ queryKey: ['intervalos'] });
+      queryClient.invalidateQueries({ queryKey: ['metas'] });
+      if (user) {
+        await executarAvaliacaoConquistas(user.id);
+        queryClient.invalidateQueries({ queryKey: ['conquistas'] });
+      }
+    },
+  });
+}
+
+/** Hook para registrar Devolução / Reembolso de Taxa da 99 */
+export function useLancarDevolucaoTaxa() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      diaId,
+      valorCentavos,
+      descricao,
+    }: {
+      diaId: string;
+      valorCentavos: number;
+      descricao?: string;
+    }) => {
+      if (!user) throw new Error('NAO_AUTENTICADO');
+
+      const { data, error } = await (supabase.rpc as any)('rpc_lancar_devolucao_taxa', {
+        p_dia_id: diaId,
+        p_valor_centavos: valorCentavos,
+        p_descricao: descricao || 'Devolução de taxa 99',
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dia'] });
+      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['locais'] });
+    },
+  });
+}

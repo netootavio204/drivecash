@@ -97,6 +97,30 @@ export function useLancamentosDia(diaId?: string | null) {
   });
 }
 
+async function sincronizarAposMutacaoLancamento(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId?: string
+) {
+  queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
+  queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
+  queryClient.invalidateQueries({ queryKey: ['dia'] });
+
+  try {
+    await supabase.rpc('rpc_atualizar_metas');
+  } catch (err) {
+    console.warn('[DriveCash] Aviso ao rodar rpc_atualizar_metas:', err);
+  }
+
+  queryClient.invalidateQueries({ queryKey: ['metas'] });
+  queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
+  queryClient.invalidateQueries({ queryKey: ['conquistas'] });
+  queryClient.invalidateQueries({ queryKey: ['fases'] });
+
+  if (userId) {
+    void executarAvaliacaoConquistas(userId);
+  }
+}
+
 /** Hook para criar um lançamento */
 export function useCriarLancamento() {
   const queryClient = useQueryClient();
@@ -116,6 +140,7 @@ export function useCriarLancamento() {
       km,
       dataReferencia,
       ocorridoEm,
+      localId,
     }: {
       caixaId: string;
       diaId?: string | null;
@@ -129,6 +154,7 @@ export function useCriarLancamento() {
       km?: number | null;
       dataReferencia?: string | null;
       ocorridoEm?: string | null;
+      localId?: string | null;
     }) => {
       if (!user) throw new Error('NAO_AUTENTICADO');
 
@@ -155,12 +181,25 @@ export function useCriarLancamento() {
 
       if (dataReferencia) payload.data_referencia = dataReferencia;
       if (ocorridoEm) payload.ocorrido_em = ocorridoEm;
+      if (localId) payload.local_id = localId;
 
       let { data, error } = await supabase
         .from('lancamentos')
         .insert(payload as unknown as Database['public']['Tables']['lancamentos']['Insert'])
         .select()
         .single();
+
+      // Fallback seguro se o banco ainda não tiver a coluna local_id
+      if (error && error.message.includes('local_id')) {
+        delete payload.local_id;
+        const retry = await supabase
+          .from('lancamentos')
+          .insert(payload as unknown as Database['public']['Tables']['lancamentos']['Insert'])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       // Fallback seguro se o banco ainda não tiver constraint de 'cartao'
       if (error && error.message.includes('meio_pagamento') && meioPg === 'cartao') {
@@ -178,16 +217,8 @@ export function useCriarLancamento() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
-      queryClient.invalidateQueries({ queryKey: ['metas'] });
-      queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
-      queryClient.invalidateQueries({ queryKey: ['conquistas'] });
-      queryClient.invalidateQueries({ queryKey: ['fases'] });
-      void supabase.rpc('rpc_atualizar_metas');
-      if (user) void executarAvaliacaoConquistas(user.id);
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -268,16 +299,8 @@ export function useCriarLancamentosEmLote() {
       if (error) throw error;
       return data || [];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
-      queryClient.invalidateQueries({ queryKey: ['metas'] });
-      queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
-      queryClient.invalidateQueries({ queryKey: ['conquistas'] });
-      queryClient.invalidateQueries({ queryKey: ['fases'] });
-      void supabase.rpc('rpc_atualizar_metas');
-      if (user) void executarAvaliacaoConquistas(user.id);
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -322,10 +345,8 @@ export function useEditarLancamento() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -354,10 +375,8 @@ export function useExcluirLancamento() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -384,10 +403,157 @@ export function useDesfazerExclusao() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
+    },
+  });
+}
+
+export interface ParteInput {
+  local_id: string;
+  meio: 'dinheiro' | 'pix' | 'debito' | 'credito' | 'app' | 'cupom';
+  valor_centavos: number;
+}
+
+export interface LancarCorridaInput {
+  diaId?: string | null;
+  plataformaId: string;
+  categoriaId: string;
+  valorCentavos: number;
+  partes?: ParteInput[];
+  restoTipo?: 'app' | 'cupom';
+  taxaPlataformaCentavos?: number;
+  taxaOrigem?: 'nenhuma' | 'informada' | 'estimada' | 'zero_pacote';
+  qtdCorridas?: number;
+  ocorridoEm?: string;
+  km?: number | null;
+  descricao?: string | null;
+  dataReferencia?: string | null;
+}
+
+/** Hook da V2.4: Lança 1 corrida com partes atômicas via RPC (ou fallback direto) */
+export function useLancarCorridaComPartes() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: LancarCorridaInput) => {
+      if (!user) throw new Error('NAO_AUTENTICADO');
+
+      const id = crypto.randomUUID();
+
+      // 1. Tenta executar via RPC atômica rpc_lancar_corrida
+      try {
+        const { data, error } = await (supabase.rpc as any)('rpc_lancar_corrida', {
+          p_id: id,
+          p_dia_id: input.diaId || null,
+          p_plataforma_id: input.plataformaId,
+          p_categoria_id: input.categoriaId,
+          p_valor_centavos: input.valorCentavos,
+          p_partes: input.partes || [],
+          p_resto_tipo: input.restoTipo || 'app',
+          p_taxa_plataforma_centavos: input.taxaPlataformaCentavos || 0,
+          p_taxa_origem: input.taxaOrigem || 'nenhuma',
+          p_qtd_corridas: input.qtdCorridas ?? 1,
+          p_ocorrido_em: input.ocorridoEm || new Date().toISOString(),
+          p_km: input.km ?? null,
+          p_descricao: input.descricao || null,
+          p_data_referencia: input.dataReferencia || null,
+        });
+
+        if (!error && data) {
+          return data;
+        }
+      } catch (e) {
+        console.warn('[DriveCash V2] RPC rpc_lancar_corrida pendente no banco, usando fallback:', e);
+      }
+
+      // 2. Fallback direto se a RPC ainda não tiver sido executada no banco
+      const { data: caixa } = await supabase
+        .from('caixas')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('tipo', 'principal')
+        .single();
+
+      const { data: lancamento, error: erroLanc } = await (supabase as any)
+        .from('lancamentos')
+        .insert({
+          id,
+          user_id: user.id,
+          caixa_id: caixa?.id,
+          dia_id: input.diaId || null,
+          tipo: 'entrada',
+          valor_centavos: input.valorCentavos,
+          categoria_id: input.categoriaId,
+          plataforma_id: input.plataformaId,
+          descricao: input.descricao || null,
+          qtd_corridas: input.qtdCorridas ?? 1,
+          km: input.km ?? null,
+          ocorrido_em: input.ocorridoEm || new Date().toISOString(),
+          data_referencia: input.dataReferencia || new Date().toISOString().slice(0, 10),
+          origem: 'manual',
+          modo_partes: true,
+          taxa_origem: input.taxaOrigem || 'nenhuma',
+        })
+        .select()
+        .single();
+
+      if (erroLanc) throw erroLanc;
+
+      // Inserção das partes se fornecidas
+      if (input.partes && input.partes.length > 0) {
+        try {
+          const partesPayload = input.partes.map((p) => ({
+            user_id: user.id,
+            lancamento_id: id,
+            local_id: p.local_id,
+            meio: p.meio,
+            valor_centavos: p.valor_centavos,
+          }));
+
+          await (supabase as any).from('lancamento_partes').insert(partesPayload);
+        } catch (e) {
+          console.warn('[DriveCash V2] Inserção de partes em fallback falhou:', e);
+        }
+      }
+
+      return lancamento;
+    },
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
+      queryClient.invalidateQueries({ queryKey: ['locais'] });
+    },
+  });
+}
+
+/** Hook da V2.4: Exclui corrida e taxas associadas */
+export function useExcluirCorridaV2() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error('NAO_AUTENTICADO');
+
+      try {
+        const { error } = await (supabase.rpc as any)('rpc_excluir_corrida', { p_id: id });
+        if (!error) return true;
+      } catch (e) {
+        console.warn('[DriveCash V2] rpc_excluir_corrida falhou, usando soft delete normal:', e);
+      }
+
+      await supabase
+        .from('lancamentos')
+        .update({ excluido_em: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .or(`id.eq.${id},lancamento_pai_id.eq.${id}`);
+
+      return true;
+    },
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
+      queryClient.invalidateQueries({ queryKey: ['locais'] });
     },
   });
 }

@@ -7,6 +7,7 @@ import { useHistoricoDias, useDetalheDia, type DiaHistoricoComResumo } from './a
 import { formatarMoeda } from '@/lib/money';
 import { formatarDataCurta } from '@/lib/datas';
 import { exportarDiasCSV } from '@/lib/exportacao';
+import { ModalRelatorioPdf } from '@/features/relatorios/ModalRelatorioPdf';
 import {
   Calendar as CalendarIcon,
   List,
@@ -15,6 +16,7 @@ import {
   Download,
   ArrowUpRight,
   ArrowDownLeft,
+  FileText,
 } from 'lucide-react';
 
 function formatarValorCompacto(centavos: number): string {
@@ -30,6 +32,7 @@ export const HistoricoView: React.FC = () => {
   const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'calendario'>('lista');
   const [mesAtual, setMesAtual] = useState<Date>(() => new Date());
   const [diaSelecionadoId, setDiaSelecionadoId] = useState<string | null>(null);
+  const [modalPdfAberto, setModalPdfAberto] = useState<boolean>(false);
 
   const { data: dias = [], isLoading: carregandoDias } = useHistoricoDias();
   const { data: detalhe, isLoading: carregandoDetalhe } = useDetalheDia(diaSelecionadoId);
@@ -102,6 +105,60 @@ export const HistoricoView: React.FC = () => {
       }))
     );
   };
+
+  // Montagem dos dados para o Relatório PDF V2 do dia selecionado
+  const dadosPdfHistorico = useMemo(() => {
+    if (!detalhe) return null;
+
+    const resumoObj = (detalhe.dia.resumo as Record<string, any>) || {};
+    const ganhoBruto = Number(detalhe.receita || 0);
+    const despesas = Number(detalhe.despesas || 0);
+    const totalTaxas = Number(resumoObj.taxas_total_centavos || 0);
+    const taxaPlat = Number(resumoObj.taxa_plataforma_centavos || 0);
+    const taxaMaq = Number(resumoObj.taxa_maquininha_centavos || 0);
+    const taxaEfetiva = Number(resumoObj.taxa_efetiva_pct || (ganhoBruto > 0 ? (totalTaxas * 100) / ganhoBruto : 0));
+    const ganhoLiquido = Number(resumoObj.ganho_liquido_centavos || (ganhoBruto - totalTaxas));
+    const despesasOperacionais = Number(resumoObj.despesas_operacionais_centavos || despesas);
+    const lucro = Number(resumoObj.lucro_liquido_centavos || detalhe.lucro);
+    const corridas = Number(resumoObj.corridas || 0);
+    const km = detalhe.dia.km_final && detalhe.dia.km_inicial ? detalhe.dia.km_final - detalhe.dia.km_inicial : null;
+
+    return {
+      dataReferencia: detalhe.dia.data_referencia,
+      ganhoBrutoCentavos: ganhoBruto,
+      totalTaxasCentavos: totalTaxas,
+      taxaPlataformaCentavos: taxaPlat,
+      taxaMaquininhaCentavos: taxaMaq,
+      taxaEfetivaPct: taxaEfetiva,
+      ganhoLiquidoCentavos: ganhoLiquido,
+      despesasOperacionaisCentavos: despesasOperacionais,
+      lucroLiquidoCentavos: lucro,
+      reservaManutencaoCentavos: Number(detalhe.dia.reserva_manutencao_centavos || 0),
+      corridas,
+      ticketMedioCentavos: corridas > 0 ? Math.round(ganhoBruto / corridas) : 0,
+      horasOnline: detalhe.dia.minutos_online ? detalhe.dia.minutos_online / 60 : null,
+      horasLiquidas: detalhe.dia.minutos_online ? detalhe.dia.minutos_online / 60 : null,
+      ganhoPorHoraLiquidoCentavos: null,
+      kmRodados: km,
+      lucroPorKmCentavos: km && km > 0 ? Math.round(lucro / km) : null,
+      saldosLocais: Array.isArray(resumoObj.saldos_locais)
+        ? resumoObj.saldos_locais.map((s: any) => ({
+            nome: s.nome || 'Conta',
+            tipo: s.tipo || 'banco',
+            saldoCentavos: Number(s.saldo_centavos || 0),
+          }))
+        : [],
+      lancamentos: detalhe.lancamentos.map((l) => ({
+        hora: new Date(l.ocorrido_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        descricao: l.plataformas?.nome || l.categorias?.nome || l.descricao || 'Lançamento',
+        tipo: l.tipo,
+        categoria: l.categorias?.nome,
+        meio: l.meio_pagamento,
+        valorCentavos: l.valor_centavos,
+      })),
+      observacoes: detalhe.dia.observacoes,
+    };
+  }, [detalhe]);
 
   return (
     <div className="space-y-5 pb-20">
@@ -428,9 +485,30 @@ export const HistoricoView: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* Ação de Gerar Relatório em PDF */}
+            <div className="pt-2 border-t border-line/40">
+              <Button
+                variante="primario"
+                className="w-full justify-center shadow-sm"
+                onClick={() => setModalPdfAberto(true)}
+                icone={<FileText className="size-4" />}
+              >
+                Gerar Relatório em PDF deste Dia
+              </Button>
+            </div>
           </div>
         )}
       </Modal>
+
+      {/* Modal de Impressão / Compartilhamento de PDF */}
+      {dadosPdfHistorico && (
+        <ModalRelatorioPdf
+          aberto={modalPdfAberto}
+          aoFechar={() => setModalPdfAberto(false)}
+          dados={dadosPdfHistorico}
+        />
+      )}
     </div>
   );
 };

@@ -16,10 +16,10 @@
 | D-V2-09 | Pacote Taxa Zero: cadastrar? | Conforme a cidade do dono | V2.1 / V2.5 | Estrutura pronta nas configs; usuário não compra rotineiramente |
 | D-V2-10 | Taxas de maquininha por banco | Valores do contrato do dono | V2.5 | Configuração ativa por banco nas Configurações (ex: Mercado Pago padrão configurável) |
 | D-V2-11 | Conferência por local no fechamento | Bolso obrigatório; app/bancos opcionais | V2.5 | Bolso obrigatório (se houve dinheiro no dia); App 99 e Bancos opcionais; diferenças geram ajuste automático |
-| D-V2-12 | Biblioteca de PDF | pdfmake | V2.6 | _(pendente)_ |
-| D-V2-13 | PDF colorido × econômico | Colorido com opção econômica | V2.6 | _(pendente)_ |
-| D-V2-14 | Lista completa de lançamentos no PDF | Sim (com opção de ocultar) | V2.6 | _(pendente)_ |
-| D-V2-15 | APK já existe e precisa atualizar? | Conforme resposta | V2.1 / V2.6 | Sim, APK já existe e instalado no celular; sincronizar na V2.6 |
+| D-V2-12 | Biblioteca de PDF | pdfmake | V2.6 | Geração 100% no dispositivo (pdfmake com fontes locais e suporte a impressão/compartilhamento) |
+| D-V2-13 | PDF colorido × econômico | Colorido com opção econômica | V2.6 | Colorido padrão elegante com botão para alternar para versão econômica P&B |
+| D-V2-14 | Lista completa de lançamentos no PDF | Sim (com opção de ocultar) | V2.6 | Sim, com caixinha rápida para marcar/desmarcar antes de gerar |
+| D-V2-15 | APK já existe e precisa atualizar? | Conforme resposta | V2.1 / V2.6 | Sim, APK já existe no celular; sincronizar pasta APK com os arquivos da V2 |
 
 ## Respostas da entrevista de negócio (V2.1)
 | Pergunta | Resposta do dono |
@@ -62,6 +62,13 @@
 | 2026-10-18 | V2.5 | Transferências e saques rotineiros sem taxa mandatória (saque 1:1) | Resposta do dono (Fase V2.5) |
 | 2026-10-18 | V2.5 | Maquininha de cartão configurável por banco nas Configurações (com cálculo automático de desconto na parte) | Resposta do dono (Fase V2.5) |
 | 2026-10-18 | V2.5 | Fechamento v2: conferência do Bolso obrigatória (se houve dinheiro em espécie); App 99 e Bancos opcionais; diferenças geram ajuste com motivo | Resposta do dono (Fase V2.5) |
+| 2026-10-18 | V2.6 | PDF com estilo colorido padrão e botão alternador para versão econômica P&B (fundo branco para economia de tinta) | Resposta do dono (Fase V2.6) |
+| 2026-10-18 | V2.6 | Lista completa de lançamentos inclusa no PDF com caixinha rápida para marcar/desmarcar | Resposta do dono (Fase V2.6) |
+| 2026-10-18 | V2.6 | Cabeçalho com logo DriveCash, nome do motorista, veículo/placa e plataforma | Resposta do dono (Fase V2.6) |
+| 2026-10-18 | V2.6 | Todas as ações disponíveis no PDF: Baixar, Compartilhar (WhatsApp) e Imprimir | Resposta do dono (Fase V2.6) |
+| 2026-10-18 | V2.6 | Botão de PDF disponível na tela final do Fechamento do Dia e no Histórico | Resposta do dono (Fase V2.6) |
+| 2026-10-18 | V2.6 | Sincronizar arquivos para geração do APK da V2 atualizado | Resposta do dono (Fase V2.6) |
+| 2026-10-18 | V2.6 | Modo de usuário único: recursos V2 liberados diretamente na conta do motorista | Resposta do dono (Fase V2.6) |
 
 ## Mudanças em relação ao PRD v2
 | Data | Fase | O que mudou | Motivo |

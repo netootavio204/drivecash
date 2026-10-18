@@ -25,6 +25,7 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle2,
+  RotateCcw,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -64,6 +65,81 @@ export const ConfiguracoesView: React.FC = () => {
 
   // Backup
   const [processandoBackup, setProcessandoBackup] = useState(false);
+
+  // Reset Seletivo (Decisão V2.4)
+  const [modalResetAberto, setModalResetAberto] = useState(false);
+  const [resetEntradas, setResetEntradas] = useState(true);
+  const [resetSaidas, setResetSaidas] = useState(true);
+  const [resetTransferencias, setResetTransferencias] = useState(false);
+  const [resetPausas, setResetPausas] = useState(false);
+  const [palavraReset, setPalavraReset] = useState('');
+  const [resetando, setResetando] = useState(false);
+
+  const handleExecutarReset = async () => {
+    if (palavraReset.trim().toUpperCase() !== 'ZERAR') {
+      toast.erro('Digite a palavra ZERAR em maiúsculo para confirmar.');
+      return;
+    }
+
+    if (!user) return;
+
+    try {
+      setResetando(true);
+
+      // Tenta via RPC dedicada
+      try {
+        const { error } = await (supabase.rpc as any)('rpc_reset_seletivo', {
+          p_opcoes: {
+            entradas: resetEntradas,
+            saidas: resetSaidas,
+            transferencias: resetTransferencias,
+            pausas: resetPausas,
+          },
+          p_palavra_seguranca: 'ZERAR',
+        });
+        if (!error) {
+          toast.sucesso('Limpeza seletiva concluída com sucesso!');
+          setModalResetAberto(false);
+          setPalavraReset('');
+          return;
+        }
+      } catch (e) {
+        console.warn('[DriveCash V2] RPC rpc_reset_seletivo pendente, usando fallback direto:', e);
+      }
+
+      // Fallback direto seguro por user_id
+      if (resetEntradas) {
+        await supabase
+          .from('lancamentos')
+          .update({ excluido_em: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .in('tipo', ['entrada', 'ajuste_entrada']);
+      }
+
+      if (resetSaidas) {
+        await supabase
+          .from('lancamentos')
+          .update({ excluido_em: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .in('tipo', ['saida', 'ajuste_saida']);
+      }
+
+      if (resetTransferencias) {
+        await (supabase as any)
+          .from('locais_transferencias')
+          .update({ excluido_em: new Date().toISOString() })
+          .eq('user_id', user.id);
+      }
+
+      toast.sucesso('Limpeza seletiva concluída! Seus lançamentos foram reiniciados.');
+      setModalResetAberto(false);
+      setPalavraReset('');
+    } catch (err: any) {
+      toast.erro(traduzirErro(err));
+    } finally {
+      setResetando(false);
+    }
+  };
 
   const handleToggleSom = (ativo: boolean) => {
     setSomAtivo(ativo);
@@ -340,6 +416,26 @@ export const ConfiguracoesView: React.FC = () => {
         </div>
       </Card>
 
+      {/* Limpeza / Reset Seletivo para Recomeço Limpo (Decisão V2.4) */}
+      <Card className="p-5 bg-bg-2 border-line/60 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <RotateCcw className="size-5 text-amber-400" />
+            <h2 className="text-base font-bold text-texto-1">Recomeço Limpo / Reset Seletivo</h2>
+          </div>
+          <Button
+            variante="secundario"
+            className="text-xs h-8 text-amber-400 hover:text-amber-300 border-amber-500/30"
+            onClick={() => setModalResetAberto(true)}
+          >
+            Escolher o que zerar
+          </Button>
+        </div>
+        <p className="text-xs text-texto-3">
+          Deseja recomeçar o registro com lançamentos retroativos limpos? Você pode escolher exatamente o que zerar (entradas, saídas ou transferências) com total segurança sem apagar sua conta.
+        </p>
+      </Card>
+
       {/* Suporte e Contato */}
       <Card className="p-5 bg-bg-2 border-line/60 space-y-3">
         <div className="flex items-center justify-between">
@@ -530,6 +626,93 @@ export const ConfiguracoesView: React.FC = () => {
               placeholder="Digite EXCLUIR"
               value={confirmacaoExcluir}
               onChange={(e) => setConfirmacaoExcluir(e.target.value)}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Reset Seletivo (Decisão V2.4) */}
+      <Modal
+        aberto={modalResetAberto}
+        aoFechar={() => setModalResetAberto(false)}
+        titulo="Recomeço Limpo / Reset Seletivo"
+        descricao="Escolha exatamente quais categorias de registros você deseja limpar para recomeçar seus lançamentos com dados limpos."
+        rodape={
+          <div className="flex gap-2 w-full sm:justify-end">
+            <Button
+              variante="fantasma"
+              onClick={() => setModalResetAberto(false)}
+              disabled={resetando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variante="perigo"
+              onClick={handleExecutarReset}
+              carregando={resetando}
+              disabled={palavraReset.trim().toUpperCase() !== 'ZERAR'}
+            >
+              Executar Limpeza Seletiva
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-xs">
+          <p className="text-texto-2 font-medium">
+            Selecione o que deseja limpar. <strong>Sua conta, perfil, conquistas e categorias NÃO serão apagados.</strong>
+          </p>
+
+          <div className="space-y-2 p-3 rounded-lg bg-bg-2 border border-line">
+            <label className="flex items-center gap-2 cursor-pointer text-texto-1">
+              <input
+                type="checkbox"
+                checked={resetEntradas}
+                onChange={(e) => setResetEntradas(e.target.checked)}
+                className="size-4 accent-laranja-500 rounded"
+              />
+              <span className="font-semibold">Entradas e Corridas passadas</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer text-texto-1">
+              <input
+                type="checkbox"
+                checked={resetSaidas}
+                onChange={(e) => setResetSaidas(e.target.checked)}
+                className="size-4 accent-laranja-500 rounded"
+              />
+              <span className="font-semibold">Despesas e Saídas passadas</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer text-texto-1">
+              <input
+                type="checkbox"
+                checked={resetTransferencias}
+                onChange={(e) => setResetTransferencias(e.target.checked)}
+                className="size-4 accent-laranja-500 rounded"
+              />
+              <span className="font-semibold">Histórico de transferências entre locais</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer text-texto-1">
+              <input
+                type="checkbox"
+                checked={resetPausas}
+                onChange={(e) => setResetPausas(e.target.checked)}
+                className="size-4 accent-laranja-500 rounded"
+              />
+              <span className="font-semibold">Histórico de intervalos de trabalho</span>
+            </label>
+          </div>
+
+          <div className="space-y-1.5 pt-1">
+            <label className="text-texto-2 font-bold block">
+              Para confirmar com segurança, digite a palavra <span className="text-negativo font-mono font-black">ZERAR</span> abaixo:
+            </label>
+            <Input
+              rotulo="Palavra de verificação"
+              placeholder="Digite ZERAR"
+              value={palavraReset}
+              onChange={(e) => setPalavraReset(e.target.value)}
             />
           </div>
         </div>
