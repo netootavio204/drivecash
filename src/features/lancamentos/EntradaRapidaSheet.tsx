@@ -7,11 +7,11 @@ import { Chip } from '@/components/ui/Chip';
 import {
   usePlataformas,
   useCategorias,
-  useCriarLancamento,
-  useCriarLancamentosEmLote,
-  useExcluirLancamento,
+  useLancarCorridaComPartes,
+  useExcluirCorridaV2,
+  type ParteInput,
 } from './api';
-import { useSaldoPrincipal } from '@/features/caixa/api';
+import { useLocaisDinheiro } from '@/features/locais/api';
 import { useDiaAtual } from '@/features/dia/api';
 import { formatarMoeda } from '@/lib/money';
 import { dataHojeISO } from '@/lib/datas';
@@ -31,6 +31,8 @@ import {
   CreditCard,
   QrCode,
   Percent,
+  Coins,
+  Tag,
 } from 'lucide-react';
 
 interface EntradaRapidaSheetProps {
@@ -40,22 +42,24 @@ interface EntradaRapidaSheetProps {
 
 const VALORES_RAPIDOS = [500, 1000, 2000, 5000, 10000]; // R$ 5, 10, 20, 50, 100 em centavos
 
+type TipoEntrada = 'corrida' | 'gorjeta';
 type ModoDestino = 'app' | 'direto' | 'dividido';
 type MeioDireto = 'dinheiro' | 'pix' | 'cartao';
 
 export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, aoFechar }) => {
   const { data: plataformas } = usePlataformas();
   const { data: categorias } = useCategorias('entrada');
-  const { caixaId } = useSaldoPrincipal();
+  const { data: locais = [] } = useLocaisDinheiro();
   const { data: diaAtual } = useDiaAtual();
-  const { mutateAsync: criarLancamento, isPending: salvandoUnico } = useCriarLancamento();
-  const { mutateAsync: criarLote, isPending: salvandoLote } = useCriarLancamentosEmLote();
-  const { mutateAsync: excluirLancamento } = useExcluirLancamento();
+  const { mutateAsync: lancarCorrida, isPending } = useLancarCorridaComPartes();
+  const { mutateAsync: excluirCorrida } = useExcluirCorridaV2();
 
-  const isPending = salvandoUnico || salvandoLote;
+  // Tipo de entrada (Corrida ou Gorjeta da 99) — Decisão V2.4
+  const [tipoEntrada, setTipoEntrada] = useState<TipoEntrada>('corrida');
 
   // Valores básicos
   const [valorCentavos, setValorCentavos] = useState<number>(0);
+  const [taxa99Centavos, setTaxa99Centavos] = useState<number>(0);
   const [plataformaIdSelecionada, setPlataformaIdSelecionada] = useState<string | null>(null);
   const [qtdCorridas, setQtdCorridas] = useState<number>(1);
   const [kmCorrida, setKmCorrida] = useState<string>('');
@@ -67,17 +71,24 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
   );
   const [editarDataHora, setEditarDataHora] = useState<boolean>(false);
 
-  // Divisão Inteligente de Ganhos
+  // Destino e Divisão Inteligente (Padrão: 'app' - Decisão V2.4)
   const [modoDestino, setModoDestino] = useState<ModoDestino>('app');
   const [meioDireto, setMeioDireto] = useState<MeioDireto>('dinheiro');
   const [valorPassageiroCentavos, setValorPassageiroCentavos] = useState<number>(0);
+  const [restoTipo, setRestoTipo] = useState<'app' | 'cupom'>('app');
 
   // Detalhes extras
   const [maisDetalhes, setMaisDetalhes] = useState<boolean>(false);
   const [observacao, setObservacao] = useState<string>('');
   const [erroMsg, setErroMsg] = useState<string | null>(null);
 
-  // Selecionar plataforma padrão: 99 ou a primeira disponível ou a última memorizada
+  // Identificação dos locais reais
+  const localApp = locais.find((l) => l.tipo === 'app') || locais[1];
+  const localBolso = locais.find((l) => l.tipo === 'bolso') || locais[0];
+  const localInter = locais.find((l) => l.banco_codigo === 'inter') || locais.find((l) => l.tipo === 'banco') || localBolso;
+  const localMercadoPago = locais.find((l) => l.banco_codigo === 'mercado_pago') || locais.find((l) => l.tipo === 'banco') || localBolso;
+
+  // Selecionar plataforma padrão: 99 ou a memorizada
   const plataformaId = React.useMemo(() => {
     if (plataformaIdSelecionada) return plataformaIdSelecionada;
     if (!plataformas || plataformas.length === 0) return '';
@@ -90,31 +101,32 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
   }, [plataformaIdSelecionada, plataformas]);
 
   const nomePlataforma = React.useMemo(() => {
-    return plataformas?.find((p) => p.id === plataformaId)?.nome || 'App';
+    return plataformas?.find((p) => p.id === plataformaId)?.nome || '99';
   }, [plataformas, plataformaId]);
 
   // Cálculos da divisão
   const valorAppRetidoCentavos = Math.max(0, valorCentavos - valorPassageiroCentavos);
 
-  // Preenche automaticamente 50% para o passageiro
   const aplicarMetade = () => {
     const metade = Math.round(valorCentavos / 2);
     setValorPassageiroCentavos(metade);
   };
 
+  const obterLocalDireto = () => {
+    if (meioDireto === 'dinheiro') return localBolso;
+    if (meioDireto === 'pix') return localInter;
+    return localMercadoPago;
+  };
+
   const rotuloMeio = (m: MeioDireto) => {
     if (m === 'dinheiro') return 'Bolso (Dinheiro)';
-    if (m === 'pix') return 'Pix Conta';
-    return 'Cartão Maquininha';
+    if (m === 'pix') return `Pix (${localInter?.nome || 'Banco'})`;
+    return `Cartão (${localMercadoPago?.nome || 'Maquininha'})`;
   };
 
   const handleSalvar = async () => {
     if (valorCentavos <= 0) {
-      setErroMsg('Informe um valor de corrida maior que zero.');
-      return;
-    }
-    if (!caixaId) {
-      setErroMsg('Caixa principal não encontrado.');
+      setErroMsg('Informe um valor maior que zero.');
       return;
     }
 
@@ -124,114 +136,116 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
     }
 
     if (modoDestino === 'dividido' && valorPassageiroCentavos >= valorCentavos) {
-      setErroMsg('O valor pago pelo passageiro deve ser menor que o total da corrida (ou selecione "Recebido Direto").');
+      setErroMsg('O valor pago pelo passageiro deve ser menor que o total da corrida.');
       return;
     }
 
     setErroMsg(null);
 
-    // Categoria padrão de corridas
-    const catCorridas = categorias?.find((c) => c.nome.toLowerCase().includes('corrida')) || categorias?.[0];
+    // Categoria: Corrida ou Gorjeta
+    const catCorridas =
+      tipoEntrada === 'gorjeta'
+        ? categorias?.find((c) => c.nome.toLowerCase().includes('gorjeta')) || categorias?.[0]
+        : categorias?.find((c) => c.nome.toLowerCase().includes('corrida')) || categorias?.[0];
 
-    // Data/hora precisa
     const [hora, min] = (horarioCorrida || '12:00').split(':');
     const ocorridoData = new Date(`${dataRef}T${hora.padStart(2, '0')}:${min ? min.padStart(2, '0') : '00'}:00`);
     const ocorridoEm = !isNaN(ocorridoData.getTime()) ? ocorridoData.toISOString() : new Date().toISOString();
-
     const kmNumerico = kmCorrida.trim() ? parseFloat(kmCorrida.replace(',', '.')) : null;
 
-    try {
-      let idsCriados: string[] = [];
+    // Montagem atômica das partes da V2.4
+    const partes: ParteInput[] = [];
+    const localDireto = obterLocalDireto();
 
-      if (modoDestino === 'dividido') {
-        // Lançamento 1: Valor pago direto pelo passageiro
-        // Lançamento 2: Valor retido no saldo da plataforma
-        const desc1 = observacao.trim()
-          ? `${observacao.trim()} (${rotuloMeio(meioDireto)} passageiro)`
-          : `Corrida ${nomePlataforma} (${rotuloMeio(meioDireto)})`;
+    const meioParte = meioDireto === 'cartao' ? 'debito' : meioDireto;
 
-        const desc2 = observacao.trim()
-          ? `${observacao.trim()} (Retido ${nomePlataforma})`
-          : `Corrida - Saldo retido ${nomePlataforma}`;
-
-        const criados = await criarLote([
-          {
-            caixaId,
-            diaId: diaAtual?.id || null,
-            tipo: 'entrada',
-            valorCentavos: valorPassageiroCentavos,
-            plataformaId: plataformaId || null,
-            categoriaId: catCorridas?.id || null,
-            qtdCorridas,
-            km: kmNumerico,
-            descricao: desc1,
-            meioPagamento: meioDireto,
-            dataReferencia: dataRef,
-            ocorridoEm,
-          },
-          {
-            caixaId,
-            diaId: diaAtual?.id || null,
-            tipo: 'entrada',
-            valorCentavos: valorAppRetidoCentavos,
-            plataformaId: plataformaId || null,
-            categoriaId: catCorridas?.id || null,
-            qtdCorridas: 0, // 0 para não duplicar contagem de corridas
-            km: null, // null para não duplicar km produtivo
-            descricao: desc2,
-            meioPagamento: 'saldo_app',
-            dataReferencia: dataRef,
-            ocorridoEm,
-          },
-        ]);
-
-        idsCriados = (criados as { id: string }[]).map((c) => c.id);
-      } else {
-        // Lançamento único (100% App ou 100% Direto)
-        const meioFinal = modoDestino === 'app' ? 'saldo_app' : meioDireto;
-        const lancamento = await criarLancamento({
-          caixaId,
-          diaId: diaAtual?.id || null,
-          tipo: 'entrada',
-          valorCentavos,
-          plataformaId: plataformaId || null,
-          categoriaId: catCorridas?.id || null,
-          qtdCorridas,
-          km: kmNumerico,
-          descricao: observacao.trim() || null,
-          meioPagamento: meioFinal,
-          dataReferencia: dataRef,
-          ocorridoEm,
+    if (tipoEntrada === 'gorjeta') {
+      // Gorjetas caem no App 99 por padrão
+      if (localApp) {
+        partes.push({
+          local_id: localApp.id,
+          meio: 'app',
+          valor_centavos: valorCentavos,
         });
-
-        if (lancamento?.id) idsCriados.push(lancamento.id);
       }
+    } else if (modoDestino === 'app') {
+      // 100% no app
+      if (localApp) {
+        partes.push({
+          local_id: localApp.id,
+          meio: restoTipo === 'cupom' ? 'cupom' : 'app',
+          valor_centavos: valorCentavos,
+        });
+      }
+    } else if (modoDestino === 'direto') {
+      // 100% em mãos / direto
+      if (localDireto) {
+        partes.push({
+          local_id: localDireto.id,
+          meio: meioParte,
+          valor_centavos: valorCentavos,
+        });
+      }
+    } else if (modoDestino === 'dividido') {
+      // Dividido: parte direta + restante no app
+      if (localDireto && valorPassageiroCentavos > 0) {
+        partes.push({
+          local_id: localDireto.id,
+          meio: meioParte,
+          valor_centavos: valorPassageiroCentavos,
+        });
+      }
+      if (localApp && valorAppRetidoCentavos > 0) {
+        partes.push({
+          local_id: localApp.id,
+          meio: restoTipo === 'cupom' ? 'cupom' : 'app',
+          valor_centavos: valorAppRetidoCentavos,
+        });
+      }
+    }
 
-      // Memorizar última plataforma usada
+    try {
+      // Lança a corrida como 1 ÚNICO LANÇAMENTO no banco com partes atômicas (BUG-02 corrigido)
+      const lancamentoCriado = await lancarCorrida({
+        diaId: diaAtual?.id || null,
+        plataformaId: plataformaId || '',
+        categoriaId: catCorridas?.id || '',
+        valorCentavos,
+        partes,
+        restoTipo,
+        taxaPlataformaCentavos: taxa99Centavos > 0 ? taxa99Centavos : undefined,
+        taxaOrigem: taxa99Centavos > 0 ? 'informada' : 'nenhuma',
+        qtdCorridas: tipoEntrada === 'gorjeta' ? 0 : qtdCorridas,
+        km: tipoEntrada === 'gorjeta' ? null : kmNumerico,
+        descricao:
+          observacao.trim() ||
+          (tipoEntrada === 'gorjeta' ? `Gorjeta ${nomePlataforma}` : null),
+        dataReferencia: dataRef,
+        ocorridoEm,
+      });
+
       if (plataformaId) {
         localStorage.setItem('meta_driver_ultima_plataforma', plataformaId);
       }
 
       const valorFormatado = formatarMoeda(valorCentavos);
-      const detalheToast =
-        modoDestino === 'dividido'
-          ? ` (${formatarMoeda(valorPassageiroCentavos)} ${rotuloMeio(meioDireto)} + ${formatarMoeda(valorAppRetidoCentavos)} ${nomePlataforma})`
-          : '';
+      const rotuloToast = tipoEntrada === 'gorjeta' ? `Gorjeta de +${valorFormatado}` : `+${valorFormatado} registrado (1 corrida)`;
 
-      toast.sucesso(`+${valorFormatado} registrado${detalheToast}`, {
+      toast.sucesso(rotuloToast, {
         acao: {
           rotulo: 'Desfazer',
           aoClicar: async () => {
-            if (idsCriados.length > 0) {
-              await excluirLancamento(idsCriados);
-              toast.info('Entrada desfeita.');
+            if (lancamentoCriado?.id) {
+              await excluirCorrida(lancamentoCriado.id);
+              toast.info('Lançamento desfeito.');
             }
           },
         },
       });
 
-      // Reset de estado e fechar
+      // Reset
       setValorCentavos(0);
+      setTaxa99Centavos(0);
       setValorPassageiroCentavos(0);
       setQtdCorridas(1);
       setKmCorrida('');
@@ -248,8 +262,12 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
     <Sheet
       aberto={aberto}
       aoFechar={aoFechar}
-      titulo="Adicionar Corrida / Entrada"
-      descricao="Registre seus ganhos com divisão inteligente por destino."
+      titulo={tipoEntrada === 'gorjeta' ? 'Adicionar Gorjeta da 99' : 'Adicionar Corrida'}
+      descricao={
+        tipoEntrada === 'gorjeta'
+          ? 'Recebeu gorjeta extra no aplicativo? Ela entra no saldo sem duplicar suas corridas.'
+          : 'Lançamento inteligente com partes de pagamento, cupons e taxa opcional.'
+      }
     >
       <div className="flex flex-col gap-4 pt-1">
         {erroMsg && (
@@ -259,7 +277,36 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
           </div>
         )}
 
-        {/* Barra Compacta de Data e Horário (Automático ou Editável) */}
+        {/* Alternador de Modo: Corrida vs Gorjeta da 99 (Decisão V2.4) */}
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-bg-1 border border-line/60">
+          <button
+            type="button"
+            onClick={() => setTipoEntrada('corrida')}
+            className={`py-2 px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${
+              tipoEntrada === 'corrida'
+                ? 'bg-laranja-500 text-white shadow-sm'
+                : 'text-texto-3 hover:text-texto-1'
+            }`}
+          >
+            <Car className="size-4" />
+            <span>Corrida Normal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTipoEntrada('gorjeta')}
+            className={`py-2 px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${
+              tipoEntrada === 'gorjeta'
+                ? 'bg-laranja-500 text-white shadow-sm'
+                : 'text-texto-3 hover:text-texto-1'
+            }`}
+          >
+            <Coins className="size-4" />
+            <span>Gorjeta da 99</span>
+          </button>
+        </div>
+
+        {/* Data e Horário */}
         <div className="p-2.5 rounded-lg bg-bg-2 border border-line/60 flex flex-col gap-2">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-texto-2 flex items-center gap-1.5">
@@ -295,7 +342,7 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
 
         {/* Campo Grande de Valor com MoneyInput */}
         <MoneyInput
-          rotulo="Valor total da corrida"
+          rotulo={tipoEntrada === 'gorjeta' ? 'Valor da gorjeta' : 'Valor total da corrida'}
           valor={valorCentavos}
           onValorChange={(novo) => {
             setValorCentavos(novo);
@@ -332,7 +379,7 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
           )}
         </div>
 
-        {/* Seleção de Plataforma */}
+        {/* Plataforma */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold uppercase tracking-wide text-texto-2">
             Plataforma
@@ -354,211 +401,265 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
           </div>
         </div>
 
-        {/* Input de KM da Corrida (com passageiro a bordo) */}
-        <div className="flex flex-col gap-1.5">
-          <Input
-            rotulo="Km desta corrida (opcional)"
-            type="text"
-            inputMode="decimal"
-            placeholder="Ex: 8.5"
-            value={kmCorrida}
-            onChange={(e) => setKmCorrida(e.target.value)}
-            ajuda="Quilômetros rodados com passageiro (para calcular seu R$/km real)."
-          />
-        </div>
-
-        {/* Destino do Ganho & Divisão Inteligente */}
-        <div className="p-3.5 rounded-xl bg-bg-2/80 border border-line/70 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wide text-texto-2 flex items-center gap-1.5">
-              <Split className="size-3.5 text-laranja-400" />
-              Destino do Dinheiro
-            </span>
-            <span className="text-[11px] text-texto-3">Onde o valor entrou?</span>
-          </div>
-
-          {/* 3 Modos: 100% App, 100% Direto ou Dividido */}
-          <div className="grid grid-cols-3 gap-1.5 p-1 rounded-lg bg-bg-1 border border-line/50">
-            <button
-              type="button"
-              onClick={() => setModoDestino('app')}
-              className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-md transition-all flex flex-col items-center gap-1 ${
-                modoDestino === 'app'
-                  ? 'bg-laranja-500 text-white shadow-sm'
-                  : 'text-texto-3 hover:text-texto-1'
-              }`}
-            >
-              <Smartphone className="size-3.5 shrink-0" />
-              <span className="truncate max-w-full">100% {nomePlataforma}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setModoDestino('direto')}
-              className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-md transition-all flex flex-col items-center gap-1 ${
-                modoDestino === 'direto'
-                  ? 'bg-laranja-500 text-white shadow-sm'
-                  : 'text-texto-3 hover:text-texto-1'
-              }`}
-            >
-              <Wallet className="size-3.5 shrink-0" />
-              <span className="truncate max-w-full">100% Direto</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setModoDestino('dividido');
-                if (valorPassageiroCentavos === 0 && valorCentavos > 0) {
-                  setValorPassageiroCentavos(Math.round(valorCentavos / 2));
-                }
-              }}
-              className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-md transition-all flex flex-col items-center gap-1 ${
-                modoDestino === 'dividido'
-                  ? 'bg-laranja-500 text-white shadow-sm'
-                  : 'text-texto-3 hover:text-texto-1'
-              }`}
-            >
-              <Split className="size-3.5 shrink-0" />
-              <span className="truncate max-w-full">Dividido</span>
-            </button>
-          </div>
-
-          {/* Seleção do Meio Direto (quando for direto ou dividido) */}
-          {(modoDestino === 'direto' || modoDestino === 'dividido') && (
-            <div className="flex flex-col gap-2 pt-1 border-t border-line/40">
-              <label className="text-xs font-semibold text-texto-2">
-                {modoDestino === 'dividido'
-                  ? 'Como o passageiro pagou a parte dele?'
-                  : 'Forma de recebimento em mãos:'}
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMeioDireto('dinheiro')}
-                  className={`py-2 px-1 text-xs font-semibold rounded-md border transition-all flex items-center justify-center gap-1.5 ${
-                    meioDireto === 'dinheiro'
-                      ? 'border-laranja-500 bg-laranja-500/15 text-laranja-400 font-bold'
-                      : 'border-line bg-bg-1 text-texto-3 hover:text-texto-1'
-                  }`}
-                >
-                  <Wallet className="size-3.5" />
-                  <span>Bolso</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMeioDireto('pix')}
-                  className={`py-2 px-1 text-xs font-semibold rounded-md border transition-all flex items-center justify-center gap-1.5 ${
-                    meioDireto === 'pix'
-                      ? 'border-laranja-500 bg-laranja-500/15 text-laranja-400 font-bold'
-                      : 'border-line bg-bg-1 text-texto-3 hover:text-texto-1'
-                  }`}
-                >
-                  <QrCode className="size-3.5" />
-                  <span>Pix Conta</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMeioDireto('cartao')}
-                  className={`py-2 px-1 text-xs font-semibold rounded-md border transition-all flex items-center justify-center gap-1.5 ${
-                    meioDireto === 'cartao'
-                      ? 'border-laranja-500 bg-laranja-500/15 text-laranja-400 font-bold'
-                      : 'border-line bg-bg-1 text-texto-3 hover:text-texto-1'
-                  }`}
-                >
-                  <CreditCard className="size-3.5" />
-                  <span>Cartão</span>
-                </button>
-              </div>
+        {/* Se for Corrida Normal: Modos de Pagamento e Divisão em Partes */}
+        {tipoEntrada === 'corrida' && (
+          <div className="p-3.5 rounded-xl bg-bg-2/80 border border-line/70 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wide text-texto-2 flex items-center gap-1.5">
+                <Split className="size-3.5 text-laranja-400" />
+                Como você recebeu?
+              </span>
+              <span className="text-[11px] text-texto-3">1 corrida = 1 lançamento</span>
             </div>
-          )}
 
-          {/* Calculadora Inteligente de Divisão (quando modoDestino === 'dividido') */}
-          {modoDestino === 'dividido' && (
-            <div className="p-3 rounded-lg bg-bg-1 border border-laranja-500/30 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-texto-1">
-                  Valor recebido do passageiro:
-                </label>
-                {valorCentavos > 0 && (
+            {/* 3 Modos: Tudo no App, Tudo em Mãos ou Dividido */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-lg bg-bg-1 border border-line/50">
+              <button
+                type="button"
+                onClick={() => setModoDestino('app')}
+                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-md transition-all flex flex-col items-center gap-1 ${
+                  modoDestino === 'app'
+                    ? 'bg-laranja-500 text-white shadow-sm'
+                    : 'text-texto-3 hover:text-texto-1'
+                }`}
+              >
+                <Smartphone className="size-3.5 shrink-0" />
+                <span className="truncate max-w-full">Tudo no App</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModoDestino('direto')}
+                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-md transition-all flex flex-col items-center gap-1 ${
+                  modoDestino === 'direto'
+                    ? 'bg-laranja-500 text-white shadow-sm'
+                    : 'text-texto-3 hover:text-texto-1'
+                }`}
+              >
+                <Wallet className="size-3.5 shrink-0" />
+                <span className="truncate max-w-full">Tudo em Mãos</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setModoDestino('dividido');
+                  if (valorPassageiroCentavos === 0 && valorCentavos > 0) {
+                    setValorPassageiroCentavos(Math.round(valorCentavos / 2));
+                  }
+                }}
+                className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-md transition-all flex flex-col items-center gap-1 ${
+                  modoDestino === 'dividido'
+                    ? 'bg-laranja-500 text-white shadow-sm'
+                    : 'text-texto-3 hover:text-texto-1'
+                }`}
+              >
+                <Split className="size-3.5 shrink-0" />
+                <span className="truncate max-w-full">Dividido</span>
+              </button>
+            </div>
+
+            {/* Opções de Cupom vs Pago no App quando tiver valor no app (Decisão V2.4) */}
+            {(modoDestino === 'app' || modoDestino === 'dividido') && (
+              <div className="flex items-center justify-between p-2 rounded-lg bg-bg-1 border border-line/40 text-xs">
+                <span className="text-texto-3 font-medium flex items-center gap-1">
+                  <Tag className="size-3.5 text-laranja-400" />
+                  Restante no App:
+                </span>
+                <div className="flex gap-1.5">
                   <button
                     type="button"
-                    onClick={aplicarMetade}
-                    className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-laranja-500/15 text-laranja-400 hover:bg-laranja-500/25 transition-all"
+                    onClick={() => setRestoTipo('app')}
+                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${
+                      restoTipo === 'app'
+                        ? 'bg-laranja-500/20 text-laranja-400 border border-laranja-500/40'
+                        : 'text-texto-3 hover:text-texto-1'
+                    }`}
                   >
-                    <Percent className="size-3" />
-                    <span>50% (Metade)</span>
+                    Pago no App
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setRestoTipo('cupom')}
+                    className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${
+                      restoTipo === 'cupom'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                        : 'text-texto-3 hover:text-texto-1'
+                    }`}
+                    title="A 99 cobre o cupom e repassa o valor integral para seu saldo"
+                  >
+                    Cupom 99
+                  </button>
+                </div>
               </div>
+            )}
 
-              <MoneyInput
-                rotulo="Pago pelo passageiro"
-                valor={valorPassageiroCentavos}
-                onValorChange={(v) => setValorPassageiroCentavos(Math.min(v, valorCentavos))}
-              />
+            {/* Meio Direto (quando for direto ou dividido) */}
+            {(modoDestino === 'direto' || modoDestino === 'dividido') && (
+              <div className="flex flex-col gap-2 pt-1 border-t border-line/40">
+                <label className="text-xs font-semibold text-texto-2">
+                  {modoDestino === 'dividido'
+                    ? 'Onde você recebeu a parte em mãos?'
+                    : 'Conta / Local onde recebeu:'}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMeioDireto('dinheiro')}
+                    className={`py-2 px-1 text-xs font-semibold rounded-md border transition-all flex items-center justify-center gap-1.5 ${
+                      meioDireto === 'dinheiro'
+                        ? 'border-laranja-500 bg-laranja-500/15 text-laranja-400 font-bold'
+                        : 'border-line bg-bg-1 text-texto-3 hover:text-texto-1'
+                    }`}
+                  >
+                    <Wallet className="size-3.5" />
+                    <span>Bolso</span>
+                  </button>
 
-              {/* Demonstrativo da Divisão */}
-              <div className="p-2.5 rounded-md bg-bg-2 border border-line text-xs flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setMeioDireto('pix')}
+                    className={`py-2 px-1 text-xs font-semibold rounded-md border transition-all flex items-center justify-center gap-1.5 ${
+                      meioDireto === 'pix'
+                        ? 'border-laranja-500 bg-laranja-500/15 text-laranja-400 font-bold'
+                        : 'border-line bg-bg-1 text-texto-3 hover:text-texto-1'
+                    }`}
+                  >
+                    <QrCode className="size-3.5" />
+                    <span>Pix Inter</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMeioDireto('cartao')}
+                    className={`py-2 px-1 text-xs font-semibold rounded-md border transition-all flex items-center justify-center gap-1.5 ${
+                      meioDireto === 'cartao'
+                        ? 'border-laranja-500 bg-laranja-500/15 text-laranja-400 font-bold'
+                        : 'border-line bg-bg-1 text-texto-3 hover:text-texto-1'
+                    }`}
+                  >
+                    <CreditCard className="size-3.5" />
+                    <span>Mercado Pago</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Calculadora Inteligente de Divisão (quando modoDestino === 'dividido') */}
+            {modoDestino === 'dividido' && (
+              <div className="p-3 rounded-lg bg-bg-1 border border-laranja-500/30 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-texto-2 flex items-center gap-1">
-                    <span className="size-2 rounded-full bg-positivo" />
-                    {rotuloMeio(meioDireto)} (direto):
-                  </span>
-                  <strong className="text-texto-1 numero font-bold">
-                    {formatarMoeda(valorPassageiroCentavos)}
-                  </strong>
+                  <label className="text-xs font-bold text-texto-1">
+                    Valor recebido em mãos:
+                  </label>
+                  {valorCentavos > 0 && (
+                    <button
+                      type="button"
+                      onClick={aplicarMetade}
+                      className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-laranja-500/15 text-laranja-400 hover:bg-laranja-500/25 transition-all"
+                    >
+                      <Percent className="size-3" />
+                      <span>50% (Metade)</span>
+                    </button>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-texto-2 flex items-center gap-1">
-                    <span className="size-2 rounded-full bg-laranja-400" />
-                    Saldo no App {nomePlataforma} (repasse):
-                  </span>
-                  <strong className="text-laranja-400 numero font-bold">
-                    {formatarMoeda(valorAppRetidoCentavos)}
-                  </strong>
-                </div>
+                <MoneyInput
+                  rotulo="Parte recebida do passageiro"
+                  valor={valorPassageiroCentavos}
+                  onValorChange={(v) => setValorPassageiroCentavos(Math.min(v, valorCentavos))}
+                />
 
-                <p className="text-[10px] text-texto-3 pt-1 border-t border-line/40">
-                  O saldo no app ficará acumulado até o repasse semanal da {nomePlataforma}.
-                </p>
+                {/* Demonstrativo das partes */}
+                <div className="p-2.5 rounded-md bg-bg-2 border border-line text-xs flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-texto-2 flex items-center gap-1">
+                      <span className="size-2 rounded-full bg-positivo" />
+                      {rotuloMeio(meioDireto)}:
+                    </span>
+                    <strong className="text-texto-1 numero font-bold">
+                      {formatarMoeda(valorPassageiroCentavos)}
+                    </strong>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-texto-2 flex items-center gap-1">
+                      <span className="size-2 rounded-full bg-laranja-400" />
+                      Restante no {localApp?.nome || 'App 99'} ({restoTipo === 'cupom' ? 'Cupom' : 'Saldo'}):
+                    </span>
+                    <strong className="text-laranja-400 numero font-bold">
+                      {formatarMoeda(valorAppRetidoCentavos)}
+                    </strong>
+                  </div>
+                </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Campo Opcional: Taxa 99 do recibo (Decisão V2.4) */}
+        {tipoEntrada === 'corrida' && (
+          <div className="p-2.5 rounded-lg bg-bg-2 border border-line/60 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-texto-2">
+                Taxa 99 do recibo (opcional)
+              </span>
+              <span className="text-[11px] text-texto-3">Descontada no saldo do App</span>
             </div>
-          )}
-        </div>
-
-        {/* Stepper de Quantidade de Corridas */}
-        <div className="flex items-center justify-between p-3 rounded-md bg-bg-1 border border-line/50">
-          <div className="flex items-center gap-2 text-xs font-semibold text-texto-1">
-            <Car className="size-4 text-laranja-400" />
-            <span>Quantidade de corridas</span>
+            <MoneyInput
+              rotulo="Valor cobrado pela plataforma"
+              valor={taxa99Centavos}
+              onValorChange={setTaxa99Centavos}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setQtdCorridas((q) => Math.max(1, q - 1))}
-              disabled={qtdCorridas <= 1}
-              className="size-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-texto-2 hover:text-texto-1 disabled:opacity-40 transition-colors"
-            >
-              <Minus className="size-4" />
-            </button>
-            <span className="numero font-bold text-base w-6 text-center text-texto-1">
-              {qtdCorridas}
-            </span>
-            <button
-              type="button"
-              onClick={() => setQtdCorridas((q) => q + 1)}
-              className="size-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-texto-2 hover:text-texto-1 transition-colors"
-            >
-              <Plus className="size-4" />
-            </button>
-          </div>
-        </div>
+        )}
 
-        {/* Sanfona "Mais Detalhes" (Observação) */}
+        {/* KM da corrida */}
+        {tipoEntrada === 'corrida' && (
+          <div className="flex flex-col gap-1.5">
+            <Input
+              rotulo="Km desta corrida (opcional)"
+              type="text"
+              inputMode="decimal"
+              placeholder="Ex: 8.5"
+              value={kmCorrida}
+              onChange={(e) => setKmCorrida(e.target.value)}
+              ajuda="Quilômetros rodados com passageiro."
+            />
+          </div>
+        )}
+
+        {/* Quantidade de Corridas (sempre 1 para corrida, ou oculto/0 para gorjeta) */}
+        {tipoEntrada === 'corrida' && (
+          <div className="flex items-center justify-between p-3 rounded-md bg-bg-1 border border-line/50">
+            <div className="flex items-center gap-2 text-xs font-semibold text-texto-1">
+              <Car className="size-4 text-laranja-400" />
+              <span>Contagem de corridas</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setQtdCorridas((q) => Math.max(1, q - 1))}
+                disabled={qtdCorridas <= 1}
+                className="size-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-texto-2 hover:text-texto-1 disabled:opacity-40 transition-colors"
+              >
+                <Minus className="size-4" />
+              </button>
+              <span className="numero font-bold text-base w-6 text-center text-texto-1">
+                {qtdCorridas}
+              </span>
+              <button
+                type="button"
+                onClick={() => setQtdCorridas((q) => q + 1)}
+                className="size-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-texto-2 hover:text-texto-1 transition-colors"
+              >
+                <Plus className="size-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mais Detalhes (Observação) */}
         <div className="border-t border-line/40 pt-2">
           <button
             type="button"
@@ -581,7 +682,7 @@ export const EntradaRapidaSheet: React.FC<EntradaRapidaSheetProps> = ({ aberto, 
           )}
         </div>
 
-        {/* Botão de Salvar em Destaque */}
+        {/* Botão de Salvar */}
         <div className="flex flex-col gap-2 mt-2">
           <Button
             variante="primario"

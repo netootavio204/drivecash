@@ -11,8 +11,8 @@
 | D-V2-04 | Regra de classificação do histórico | Dinheiro→Bolso; Pix→banco padrão; app→App 99; sem info→Bolso | V2.3 | Não classificar em massa o histórico antigo agora (campos de local nulos no legado) |
 | D-V2-05 | Onde fica a reserva de manutenção | Em um banco escolhido | V2.3 | Provável no Mercado Pago (configurável nas opções de locais) |
 | D-V2-06 | "Crédito no app": transferência × despesa | Transferência (recarga) | V2.1 / V2.3 | Manter histórico antigo como despesa comum; novas recargas via transferências |
-| D-V2-07 | Reparo de corridas divididas (A fundir × B zerar × não reparar) | B (zerar a contagem das extras) | V2.4 | _(pendente)_ |
-| D-V2-08 | Restante no app: pago no app × cupom | Pago no app, cupom em 1 toque | V2.4 | _(pendente)_ |
+| D-V2-07 | Reparo de corridas divididas (A fundir × B zerar × não reparar) | B (zerar a contagem das extras) | V2.4 | Corrigir corridas novas com partes (1 corrida = 1 lançamento); criar ferramenta de reset seletivo nas configs para recomeço limpo opcional |
+| D-V2-08 | Restante no app: pago no app × cupom | Pago no app, cupom em 1 toque | V2.4 | Padrão 'Tudo no app' (99 cobre valor do cupom e retém no saldo do app); suporte a Gorjeta (corridas = 0) |
 | D-V2-09 | Pacote Taxa Zero: cadastrar? | Conforme a cidade do dono | V2.1 / V2.5 | Sem taxa municipal; taxa 99 estimada em ~10-11% (dinâmica/variável, sem taxa zero fixa) |
 | D-V2-10 | Taxas de maquininha por banco | Valores do contrato do dono | V2.5 | _(pendente)_ |
 | D-V2-11 | Conferência por local no fechamento | Bolso obrigatório; app/bancos opcionais | V2.5 | _(pendente)_ |
@@ -52,6 +52,10 @@
 | 2026-10-18 | V2.3 | Histórico antigo não será classificado em massa agora para evitar divergências e garantir 100% de segurança dos dados | Resposta do dono (Fase V2.3) |
 | 2026-10-18 | V2.3 | Despesas antigas de 'Crédito no app' mantidas como despesas comuns | Resposta do dono (Fase V2.3) |
 | 2026-10-18 | V2.3 | Cartões de saldo visíveis no Início abaixo do Caixa Atual com alerta discreto em vermelho para App 99 negativo | Resposta do dono (Fase V2.3) |
+| 2026-10-18 | V2.4 | Padrão de lançamento rápido: 'Tudo no app' | Resposta do dono (Fase V2.4) |
+| 2026-10-18 | V2.4 | Cupons da 99: 99 cobre o valor integral no saldo do app; adicionar atalho rápido de Cupom e seção de Gorjeta (com corridas = 0) | Resposta do dono (Fase V2.4) |
+| 2026-10-18 | V2.4 | Campo 'Taxa 99 (do recibo)' opcional na tela de entrada | Resposta do dono (Fase V2.4) |
+| 2026-10-18 | V2.4 | Histórico de corridas antigas preservado; opção de reset seletivo nas configurações com segurança máxima para recomeço limpo | Resposta do dono (Fase V2.4) |
 
 ## Mudanças em relação ao PRD v2
 | Data | Fase | O que mudou | Motivo |
