@@ -10,7 +10,7 @@
 | V2.3 | Locais do dinheiro: bolso, app 99 e bancos | ✅ concluída | 2026-10-18 | 2026-10-18 |
 | V2.4 | Corrida única com pagamento em partes | ✅ concluída | 2026-10-18 | 2026-10-18 |
 | V2.5 | Taxas, ganho líquido e fechamento v2 | ✅ concluída | 2026-10-18 | 2026-10-18 |
-| V2.6 | Relatório PDF, publicação e APK | 🟡 pronta para aprovação | — | — |
+| V2.6 | Relatório PDF, publicação e APK | ✅ concluída | 2026-10-18 | 2026-10-18 |
 
 ## Rede de segurança
 - Tags Git: `pre-v2` · `v2-1-aprovada` · `v2-2-aprovada` · `v2-3-aprovada` · `v2-4-aprovada` · `v2-5-aprovada`
