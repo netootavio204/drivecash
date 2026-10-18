@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -66,6 +67,8 @@ export const ConfiguracoesView: React.FC = () => {
   // Backup
   const [processandoBackup, setProcessandoBackup] = useState(false);
 
+  const queryClient = useQueryClient();
+
   // Reset Seletivo (Decisão V2.4)
   const [modalResetAberto, setModalResetAberto] = useState(false);
   const [resetEntradas, setResetEntradas] = useState(true);
@@ -87,6 +90,7 @@ export const ConfiguracoesView: React.FC = () => {
       setResetando(true);
 
       // Tenta via RPC dedicada
+      let resetRealizado = false;
       try {
         const { error } = await (supabase.rpc as any)('rpc_reset_seletivo', {
           p_opcoes: {
@@ -98,40 +102,53 @@ export const ConfiguracoesView: React.FC = () => {
           p_palavra_seguranca: 'ZERAR',
         });
         if (!error) {
-          toast.sucesso('Limpeza seletiva concluída com sucesso!');
-          setModalResetAberto(false);
-          setPalavraReset('');
-          return;
+          resetRealizado = true;
         }
       } catch (e) {
         console.warn('[DriveCash V2] RPC rpc_reset_seletivo pendente, usando fallback direto:', e);
       }
 
-      // Fallback direto seguro por user_id
-      if (resetEntradas) {
-        await supabase
-          .from('lancamentos')
-          .update({ excluido_em: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .in('tipo', ['entrada', 'ajuste_entrada']);
+      if (!resetRealizado) {
+        // Fallback direto seguro por user_id
+        const agora = new Date().toISOString();
+        if (resetEntradas) {
+          await supabase
+            .from('lancamentos')
+            .update({ excluido_em: agora })
+            .eq('user_id', user.id)
+            .in('tipo', ['entrada', 'ajuste_entrada', 'transferencia_entrada'])
+            .is('excluido_em', null);
+        }
+
+        if (resetSaidas) {
+          await supabase
+            .from('lancamentos')
+            .update({ excluido_em: agora })
+            .eq('user_id', user.id)
+            .in('tipo', ['saida', 'ajuste_saida', 'transferencia_saida'])
+            .is('excluido_em', null);
+        }
+
+        if (resetTransferencias) {
+          await (supabase as any)
+            .from('locais_transferencias')
+            .update({ excluido_em: agora })
+            .eq('user_id', user.id)
+            .is('excluido_em', null);
+        }
+
+        if (resetPausas) {
+          await (supabase as any)
+            .from('pausas')
+            .delete()
+            .eq('user_id', user.id);
+        }
       }
 
-      if (resetSaidas) {
-        await supabase
-          .from('lancamentos')
-          .update({ excluido_em: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .in('tipo', ['saida', 'ajuste_saida']);
-      }
+      // Invalidação imediata do cache para zerar a interface na hora
+      await queryClient.invalidateQueries();
 
-      if (resetTransferencias) {
-        await (supabase as any)
-          .from('locais_transferencias')
-          .update({ excluido_em: new Date().toISOString() })
-          .eq('user_id', user.id);
-      }
-
-      toast.sucesso('Limpeza seletiva concluída! Seus lançamentos foram reiniciados.');
+      toast.sucesso('Limpeza seletiva concluída! Seu extrato e saldos foram reiniciados.');
       setModalResetAberto(false);
       setPalavraReset('');
     } catch (err: any) {
