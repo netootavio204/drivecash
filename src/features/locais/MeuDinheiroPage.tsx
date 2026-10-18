@@ -21,7 +21,7 @@ import {
   useLocaisDinheiro,
   useConciliacaoLocais,
   useHistoricoTransferencias,
-  useAtualizarSaldoInicial,
+  useAtualizarConfiguracaoLocal,
 } from './api';
 import { TransferenciaModal } from './TransferenciaModal';
 import type { LocalComSaldo } from './types';
@@ -30,11 +30,14 @@ export function MeuDinheiroPage() {
   const { data: locais = [], isLoading: carregandoLocais } = useLocaisDinheiro();
   const { data: conciliacao } = useConciliacaoLocais();
   const { data: transferencias = [], isLoading: carregandoTransf } = useHistoricoTransferencias();
-  const { mutateAsync: atualizarSaldoInicial, isPending: salvandoSaldoInicial } = useAtualizarSaldoInicial();
+  const { mutateAsync: atualizarConfigLocal, isPending: salvandoConfig } = useAtualizarConfiguracaoLocal();
 
   const [modalTransfAberto, setModalTransfAberto] = useState(false);
   const [localAjustando, setLocalAjustando] = useState<LocalComSaldo | null>(null);
   const [novoSaldoInicial, setNovoSaldoInicial] = useState<number>(0);
+  const [taxaDebito, setTaxaDebito] = useState<string>('0');
+  const [taxaCredito, setTaxaCredito] = useState<string>('0');
+  const [taxaPix, setTaxaPix] = useState<string>('0');
 
   const totalCentavos = locais.reduce((acc, l) => acc + (l.saldo_centavos || 0), 0);
   const localApp = locais.find((l) => l.tipo === 'app');
@@ -54,19 +57,25 @@ export function MeuDinheiroPage() {
   const abrirAjusteSaldoInicial = (local: LocalComSaldo) => {
     setLocalAjustando(local);
     setNovoSaldoInicial(local.saldo_inicial_centavos || 0);
+    setTaxaDebito(String(local.taxa_debito_pct || 0));
+    setTaxaCredito(String(local.taxa_credito_pct || 0));
+    setTaxaPix(String(local.taxa_pix_pct || 0));
   };
 
   const salvarAjuste = async () => {
     if (!localAjustando) return;
     try {
-      await atualizarSaldoInicial({
+      await atualizarConfigLocal({
         localId: localAjustando.id,
         saldoInicialCentavos: novoSaldoInicial,
+        taxaDebitoPct: parseFloat(taxaDebito.replace(',', '.')) || 0,
+        taxaCreditoPct: parseFloat(taxaCredito.replace(',', '.')) || 0,
+        taxaPixPct: parseFloat(taxaPix.replace(',', '.')) || 0,
       });
-      toast.sucesso(`Saldo inicial de ${localAjustando.nome} atualizado!`);
+      toast.sucesso(`Configurações de ${localAjustando.nome} salvas!`);
       setLocalAjustando(null);
     } catch (e: any) {
-      toast.erro(e.message || 'Erro ao atualizar saldo inicial');
+      toast.erro(e.message || 'Erro ao atualizar configurações');
     }
   };
 
@@ -313,13 +322,13 @@ export function MeuDinheiroPage() {
         locais={locais}
       />
 
-      {/* Modal de Ajuste de Saldo Inicial */}
+      {/* Modal de Ajuste de Saldo Inicial e Taxas de Maquininha */}
       {localAjustando && (
         <Modal
           aberto={!!localAjustando}
           aoFechar={() => setLocalAjustando(null)}
-          titulo={`Saldo Inicial: ${localAjustando.nome}`}
-          descricao="Defina o valor que você já possuía nesta conta ao começar a usar o DriveCash."
+          titulo={`Configurações: ${localAjustando.nome}`}
+          descricao="Defina o saldo de abertura e, caso use maquininha vinculada a este banco, as taxas aplicadas."
         >
           <div className="space-y-4">
             <MoneyInput
@@ -330,20 +339,75 @@ export function MeuDinheiroPage() {
               autoFocus
             />
 
+            {localAjustando.tipo === 'banco' && (
+              <div className="p-3 bg-bg-1 rounded-lg border border-line space-y-3">
+                <span className="text-xs font-bold text-texto-2 uppercase tracking-wider block">
+                  Taxas da Maquininha neste Banco (%)
+                </span>
+                <p className="text-[11px] text-texto-3">
+                  Quando receber corridas no cartão vinculado a este banco, o DriveCash calculará e abaterá a taxa automaticamente.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-texto-3 block mb-1">
+                      Débito (%)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={taxaDebito}
+                      onChange={(e) => setTaxaDebito(e.target.value)}
+                      placeholder="1.99"
+                      className="w-full px-2.5 py-1.5 rounded-md bg-bg-2 border border-line text-xs font-bold text-texto-1 focus:outline-none focus:border-laranja-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-texto-3 block mb-1">
+                      Crédito (%)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={taxaCredito}
+                      onChange={(e) => setTaxaCredito(e.target.value)}
+                      placeholder="3.49"
+                      className="w-full px-2.5 py-1.5 rounded-md bg-bg-2 border border-line text-xs font-bold text-texto-1 focus:outline-none focus:border-laranja-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-texto-3 block mb-1">
+                      Pix (%)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={taxaPix}
+                      onChange={(e) => setTaxaPix(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-2.5 py-1.5 rounded-md bg-bg-2 border border-line text-xs font-bold text-texto-1 focus:outline-none focus:border-laranja-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-2 border-t border-line">
               <Button
                 variante="fantasma"
                 onClick={() => setLocalAjustando(null)}
-                disabled={salvandoSaldoInicial}
+                disabled={salvandoConfig}
               >
                 Cancelar
               </Button>
               <Button
                 variante="primario"
                 onClick={salvarAjuste}
-                carregando={salvandoSaldoInicial}
+                carregando={salvandoConfig}
               >
-                Salvar Saldo Inicial
+                Salvar Configurações
               </Button>
             </div>
           </div>

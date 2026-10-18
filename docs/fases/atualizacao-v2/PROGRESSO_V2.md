@@ -8,13 +8,13 @@
 | V2.1 | Auditoria, backup e rede de segurança | ✅ concluída | 2026-10-18 | 2026-10-18 |
 | V2.2 | Barras de meta, botões no topo e Intervalo | ✅ concluída | 2026-10-18 | 2026-10-18 |
 | V2.3 | Locais do dinheiro: bolso, app 99 e bancos | ✅ concluída | 2026-10-18 | 2026-10-18 |
-| V2.4 | Corrida única com pagamento em partes | 🟡 pronta para aprovação | — | — |
-| V2.5 | Taxas, ganho líquido e fechamento v2 | ⏳ não iniciada | — | — |
+| V2.4 | Corrida única com pagamento em partes | ✅ concluída | 2026-10-18 | 2026-10-18 |
+| V2.5 | Taxas, ganho líquido e fechamento v2 | 🟡 em andamento | — | — |
 | V2.6 | Relatório PDF, publicação e APK | ⏳ não iniciada | — | — |
 
 ## Rede de segurança
-- Tags Git: `pre-v2` · `v2-1-aprovada` · `v2-2-aprovada` · `v2-3-aprovada`
-- Branches: `v2-atualizacao` (branch principal de desenvolvimento) e `v2-fase-4-partes` (ativa)
+- Tags Git: `pre-v2` · `v2-1-aprovada` · `v2-2-aprovada` · `v2-3-aprovada` · `v2-4-aprovada`
+- Branches: `v2-atualizacao` (branch principal de desenvolvimento) e `v2-fase-5-taxas` (ativa)
 - Backup do banco: snapshots `v2_snapshot_antes*` e dados antigos intactos
 - Migrações preparadas: `0101_flags_e_backup.sql`, `0102_intervalos.sql`, `0103_locais.sql`, `0104_partes_estrutura.sql`, `0105_categorias_v2.sql`, `0106_rpcs_corrida_partes.sql`, `0107_views_locais.sql`, `0108_reset_seletivo.sql`
 - Suíte de testes: 57 testes aprovados (100% verde)

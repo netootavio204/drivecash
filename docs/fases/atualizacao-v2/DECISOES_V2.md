@@ -13,9 +13,9 @@
 | D-V2-06 | "Crédito no app": transferência × despesa | Transferência (recarga) | V2.1 / V2.3 | Manter histórico antigo como despesa comum; novas recargas via transferências |
 | D-V2-07 | Reparo de corridas divididas (A fundir × B zerar × não reparar) | B (zerar a contagem das extras) | V2.4 | Corrigir corridas novas com partes (1 corrida = 1 lançamento); criar ferramenta de reset seletivo nas configs para recomeço limpo opcional |
 | D-V2-08 | Restante no app: pago no app × cupom | Pago no app, cupom em 1 toque | V2.4 | Padrão 'Tudo no app' (99 cobre valor do cupom e retém no saldo do app); suporte a Gorjeta (corridas = 0) |
-| D-V2-09 | Pacote Taxa Zero: cadastrar? | Conforme a cidade do dono | V2.1 / V2.5 | Sem taxa municipal; taxa 99 estimada em ~10-11% (dinâmica/variável, sem taxa zero fixa) |
-| D-V2-10 | Taxas de maquininha por banco | Valores do contrato do dono | V2.5 | _(pendente)_ |
-| D-V2-11 | Conferência por local no fechamento | Bolso obrigatório; app/bancos opcionais | V2.5 | _(pendente)_ |
+| D-V2-09 | Pacote Taxa Zero: cadastrar? | Conforme a cidade do dono | V2.1 / V2.5 | Estrutura pronta nas configs; usuário não compra rotineiramente |
+| D-V2-10 | Taxas de maquininha por banco | Valores do contrato do dono | V2.5 | Configuração ativa por banco nas Configurações (ex: Mercado Pago padrão configurável) |
+| D-V2-11 | Conferência por local no fechamento | Bolso obrigatório; app/bancos opcionais | V2.5 | Bolso obrigatório (se houve dinheiro no dia); App 99 e Bancos opcionais; diferenças geram ajuste automático |
 | D-V2-12 | Biblioteca de PDF | pdfmake | V2.6 | _(pendente)_ |
 | D-V2-13 | PDF colorido × econômico | Colorido com opção econômica | V2.6 | _(pendente)_ |
 | D-V2-14 | Lista completa de lançamentos no PDF | Sim (com opção de ocultar) | V2.6 | _(pendente)_ |
@@ -56,6 +56,12 @@
 | 2026-10-18 | V2.4 | Cupons da 99: 99 cobre o valor integral no saldo do app; adicionar atalho rápido de Cupom e seção de Gorjeta (com corridas = 0) | Resposta do dono (Fase V2.4) |
 | 2026-10-18 | V2.4 | Campo 'Taxa 99 (do recibo)' opcional na tela de entrada | Resposta do dono (Fase V2.4) |
 | 2026-10-18 | V2.4 | Histórico de corridas antigas preservado; opção de reset seletivo nas configurações com segurança máxima para recomeço limpo | Resposta do dono (Fase V2.4) |
+| 2026-10-18 | V2.5 | Taxa 99 digitada diretamente (sem campo 'Você recebe') quando o motorista quiser olhar o recibo/Central de Ganhos | Resposta do dono (Fase V2.5) |
+| 2026-10-18 | V2.5 | Taxa 99 devolvida lançada como entrada no App 99 com categoria devolucoes e qtd_corridas = 0 | Resposta do dono (Fase V2.5) |
+| 2026-10-18 | V2.5 | Pacote Taxa Zero mantido como suporte estrutural nas configurações, sem obrigatoriedade de compra | Resposta do dono (Fase V2.5) |
+| 2026-10-18 | V2.5 | Transferências e saques rotineiros sem taxa mandatória (saque 1:1) | Resposta do dono (Fase V2.5) |
+| 2026-10-18 | V2.5 | Maquininha de cartão configurável por banco nas Configurações (com cálculo automático de desconto na parte) | Resposta do dono (Fase V2.5) |
+| 2026-10-18 | V2.5 | Fechamento v2: conferência do Bolso obrigatória (se houve dinheiro em espécie); App 99 e Bancos opcionais; diferenças geram ajuste com motivo | Resposta do dono (Fase V2.5) |
 
 ## Mudanças em relação ao PRD v2
 | Data | Fase | O que mudou | Motivo |

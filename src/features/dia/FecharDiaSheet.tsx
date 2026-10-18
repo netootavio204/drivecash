@@ -5,8 +5,15 @@ import { Input } from '@/components/ui/Input';
 import { MoneyInput } from '@/components/ui/MoneyInput';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { useFecharDia, useLotePlataformas, useResumoDia, calcularMinutosPausa, type DiaTrabalho } from './api';
-import { useSaldoPrincipal, useSaldoManutencao, useConfiguracaoManutencao } from '@/features/caixa/api';
+import {
+  useFecharDiaV2,
+  useResumoDiaV2,
+  useLotePlataformas,
+  calcularMinutosPausa,
+  type DiaTrabalho,
+} from './api';
+import { useLocaisDinheiro } from '@/features/locais/api';
+import { useSaldoPrincipal, useConfiguracaoManutencao } from '@/features/caixa/api';
 import { usePlataformas, useCategorias } from '@/features/lancamentos/api';
 import { formatarMoeda } from '@/lib/money';
 import { traduzirErro } from '@/lib/erros';
@@ -21,7 +28,14 @@ import {
   ArrowLeft,
   Coins,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Check,
+  Wallet,
+  Smartphone,
+  Building2,
+  Clock,
+  Gauge,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -34,15 +48,15 @@ interface FecharDiaSheetProps {
 export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar, diaAtual }) => {
   const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1);
 
-  // APIs
-  const { data: resumo } = useResumoDia(diaAtual.id);
+  // APIs V2
+  const { data: resumoV2 } = useResumoDiaV2(diaAtual.id);
+  const { data: locais = [] } = useLocaisDinheiro();
   const { saldoCentavos: saldoPrincipal, caixaId: caixaPrincipalId } = useSaldoPrincipal();
-  const { saldoCentavos: saldoManutencao } = useSaldoManutencao();
   const { data: configManutencao } = useConfiguracaoManutencao();
   const { data: plataformas } = usePlataformas();
   const { data: categoriasEntrada } = useCategorias('entrada');
 
-  const { mutateAsync: fecharDia, isPending: fechandoDia } = useFecharDia();
+  const { mutateAsync: fecharDiaV2, isPending: fechandoDia } = useFecharDiaV2();
   const { mutateAsync: salvarLote, isPending: salvandoLote } = useLotePlataformas();
 
   // Passo 1: Lote por plataforma
@@ -50,12 +64,13 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
   const [modalLoteAberto, setModalLoteAberto] = useState(false);
   const [modoLote, setModoLote] = useState<'somar' | 'substituir'>('somar');
 
-  // Passo 2: Odômetro e Conferência
+  // Passo 2: Odômetro, Horas e Conferência por Local (V2)
   const minutosPausa = useMemo(() => calcularMinutosPausa(diaAtual), [diaAtual]);
   const [kmFinal, setKmFinal] = useState<string>('');
   const [horasTrabalhadas, setHorasTrabalhadas] = useState<string>('');
-  const [saldoInformadoCentavos, setSaldoInformadoCentavos] = useState<number | null>(null);
-  const [conferenciaPulada, setConferenciaPulada] = useState<boolean>(false);
+  const [saldosInformados, setSaldosInformados] = useState<Record<string, number | null>>({});
+  const [outrosLocaisAbertos, setOutrosLocaisAbertos] = useState(false);
+  const [conferenciaBolsoPulada, setConferenciaBolsoPulada] = useState<boolean>(false);
 
   // Pré-calcula horas trabalhadas descontando as pausas automaticamente
   React.useEffect(() => {
@@ -78,11 +93,18 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
   const [observacoes, setObservacoes] = useState<string>('');
   const [erroMsg, setErroMsg] = useState<string | null>(null);
 
-  // Cálculos dinâmicos
-  const receita = Number(resumo?.receita_centavos ?? 0);
-  const despesas = Number(resumo?.despesas_centavos ?? 0);
-  const lucroCalculado = receita - despesas;
+  // Métricas financeiras V2
+  const ganhoBruto = Number(resumoV2?.ganho_bruto_centavos ?? 0);
+  const totalTaxas = Number(resumoV2?.taxas_total_centavos ?? 0);
+  const taxaPlataforma = Number(resumoV2?.taxa_plataforma_centavos ?? 0);
+  const taxaMaquininha = Number(resumoV2?.taxa_maquininha_centavos ?? 0);
+  const ganhoLiquido = Number(resumoV2?.ganho_liquido_centavos ?? (ganhoBruto - totalTaxas));
+  const taxaEfetivaPct = Number(resumoV2?.taxa_efetiva_pct ?? 0);
+  const despesasOperacionais = Number(resumoV2?.despesas_operacionais_centavos ?? 0);
+  const lucroCalculado = Number(resumoV2?.lucro_liquido_centavos ?? (ganhoLiquido - despesasOperacionais));
+  const totalCorridas = Number(resumoV2?.corridas ?? 0);
 
+  // Métricas de Rendimento
   const kmPercorrido = useMemo(() => {
     if (!kmFinal.trim() || diaAtual.km_inicial === null) return null;
     const final = parseInt(kmFinal, 10);
@@ -90,20 +112,40 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
     return final - diaAtual.km_inicial;
   }, [kmFinal, diaAtual.km_inicial]);
 
-  const saldoCalculadoAtual = saldoPrincipal;
+  const horasLiquidasNum = useMemo(() => {
+    const parsed = parseFloat(horasTrabalhadas);
+    return isNaN(parsed) || parsed <= 0 ? null : parsed;
+  }, [horasTrabalhadas]);
 
-  const diferencaConferencia = useMemo(() => {
-    if (conferenciaPulada || saldoInformadoCentavos === null) return 0;
-    return saldoInformadoCentavos - saldoCalculadoAtual;
-  }, [conferenciaPulada, saldoInformadoCentavos, saldoCalculadoAtual]);
+  const ganhoPorHoraLiquido = useMemo(() => {
+    if (!horasLiquidasNum || horasLiquidasNum <= 0) return null;
+    return Math.round(ganhoLiquido / horasLiquidasNum);
+  }, [ganhoLiquido, horasLiquidasNum]);
 
+  const lucroPorKm = useMemo(() => {
+    if (!kmPercorrido || kmPercorrido <= 0) return null;
+    return Math.round(lucroCalculado / kmPercorrido);
+  }, [lucroCalculado, kmPercorrido]);
+
+  // Local Bolso (dinheiro físico)
+  const localBolso = useMemo(() => locais.find((l) => l.tipo === 'bolso'), [locais]);
+  const saldoBolsoCalculado = localBolso?.saldo_centavos ?? 0;
+  const saldoBolsoInformado = saldosInformados[localBolso?.id ?? ''];
+
+  const difBolso = useMemo(() => {
+    if (conferenciaBolsoPulada || saldoBolsoInformado === undefined || saldoBolsoInformado === null) return 0;
+    return saldoBolsoInformado - saldoBolsoCalculado;
+  }, [conferenciaBolsoPulada, saldoBolsoInformado, saldoBolsoCalculado]);
+
+  // Outros locais
+  const outrosLocais = useMemo(() => locais.filter((l) => l.tipo !== 'bolso'), [locais]);
+
+  // Saldo final previsto
   const saldoFinalPrevisto = useMemo(() => {
-    const base = conferenciaPulada || saldoInformadoCentavos === null
-      ? saldoCalculadoAtual
-      : saldoInformadoCentavos;
+    const base = saldoPrincipal;
     const deposito = manutencaoPulada ? 0 : depositoManutencaoCentavos;
     return base - deposito;
-  }, [conferenciaPulada, saldoInformadoCentavos, saldoCalculadoAtual, manutencaoPulada, depositoManutencaoCentavos]);
+  }, [saldoPrincipal, manutencaoPulada, depositoManutencaoCentavos]);
 
   // Aplicar lançamento em lote
   const handleAplicarLote = async () => {
@@ -136,21 +178,28 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
     }
   };
 
-  // Submeter Fechamento Definitivo
+  // Submeter Fechamento Definitivo V2
   const handleConfirmarFechamento = async () => {
     setErroMsg(null);
     try {
       const kmNum = kmFinal.trim() ? parseInt(kmFinal, 10) : null;
       const minutosNum = horasTrabalhadas.trim() ? Math.round(parseFloat(horasTrabalhadas) * 60) : null;
-      const saldoInf = conferenciaPulada ? null : saldoInformadoCentavos;
       const depositoInf = manutencaoPulada ? 0 : depositoManutencaoCentavos;
 
-      await fecharDia({
+      // Monta lista de conferências por local
+      const conferenciaLocais = Object.entries(saldosInformados)
+        .filter(([_, val]) => val !== null && val !== undefined)
+        .map(([localId, saldoInf]) => ({
+          local_id: localId,
+          saldo_informado_centavos: saldoInf,
+        }));
+
+      await fecharDiaV2({
         diaId: diaAtual.id,
-        saldoInformadoCentavos: saldoInf,
-        depositoManutencaoCentavos: depositoInf,
         kmFinal: kmNum,
         minutosOnline: minutosNum,
+        depositoManutencaoCentavos: depositoInf,
+        conferenciaLocais,
         observacoes: observacoes.trim() || null,
       });
 
@@ -163,7 +212,7 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
       toast.sucesso('Dia fechado com sucesso!');
       aoFechar();
     } catch (err) {
-      console.error('[Meta Driver] Erro ao fechar dia:', err);
+      console.error('[DriveCash] Erro ao fechar dia:', err);
       setErroMsg(traduzirErro(err));
     }
   };
@@ -175,12 +224,12 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
       titulo="Fechar o Dia de Trabalho"
       descricao={`Passo ${passo} de 4 — ${
         passo === 1
-          ? 'Resumo e Lote'
+          ? 'Resumo de Faturamento e Taxas'
           : passo === 2
-          ? 'Odômetro e Conferência'
+          ? 'Odômetro e Conferência por Local'
           : passo === 3
           ? 'Reserva de Manutenção'
-          : 'Confirmação e Caixa'
+          : 'Confirmação e Fechamento V2'
       }`}
     >
       <div className="space-y-6">
@@ -203,37 +252,55 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
           </div>
         )}
 
-        {/* PASSO 1: Resumo do Dia e Lote por Plataforma */}
+        {/* PASSO 1: Resumo do Dia e Taxas (DriveCash V2) */}
         {passo === 1 && (
           <div className="space-y-4">
+            {/* Grade com Faturamento Bruto e Taxas */}
             <div className="grid grid-cols-2 gap-3">
               <Card className="p-3.5 bg-bg-2 border-line/60">
-                <span className="text-xs text-texto-3">Total Bruto</span>
+                <span className="text-xs text-texto-3">Ganho Bruto</span>
                 <p className="text-lg font-black text-positivo font-mono">
-                  {formatarMoeda(receita)}
+                  {formatarMoeda(ganhoBruto)}
                 </p>
                 <span className="text-[11px] text-texto-3">
-                  {resumo?.corridas ?? 0} corridas
+                  {totalCorridas} {totalCorridas === 1 ? 'corrida' : 'corridas'}
                 </span>
               </Card>
 
               <Card className="p-3.5 bg-bg-2 border-line/60">
-                <span className="text-xs text-texto-3">Total Despesas</span>
-                <p className="text-lg font-black text-negativo font-mono">
-                  {formatarMoeda(despesas)}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-texto-3">Total de Taxas</span>
+                  {taxaEfetivaPct > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      {taxaEfetivaPct.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-lg font-black text-amber-400 font-mono">
+                  {formatarMoeda(totalTaxas)}
                 </p>
-                <span className="text-[11px] text-texto-3">Combustível, lanche, etc.</span>
+                <span className="text-[11px] text-texto-3 truncate block">
+                  {totalTaxas > 0
+                    ? `99: ${formatarMoeda(taxaPlataforma)}${taxaMaquininha > 0 ? ` • Maq: ${formatarMoeda(taxaMaquininha)}` : ''}`
+                    : 'Sem taxas registradas'}
+                </span>
               </Card>
             </div>
 
-            <Card className="p-4 bg-laranja-500/10 border-laranja-500/30 flex items-center justify-between">
+            {/* Destaque do Ganho Líquido */}
+            <Card className="p-4 bg-emerald-500/10 border-emerald-500/30 flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-laranja-400">Lucro Líquido do Dia</span>
+                <span className="text-xs font-semibold text-emerald-400">Ganho Líquido (após taxas)</span>
                 <p className="text-2xl font-black text-texto-1 font-mono">
-                  {formatarMoeda(lucroCalculado)}
+                  {formatarMoeda(ganhoLiquido)}
                 </p>
+                {despesasOperacionais > 0 && (
+                  <span className="text-[11px] text-texto-3 block mt-0.5">
+                    Despesas do dia: {formatarMoeda(despesasOperacionais)} • Lucro final: {formatarMoeda(lucroCalculado)}
+                  </span>
+                )}
               </div>
-              <TrendingUp className="size-8 text-laranja-500/60" />
+              <TrendingUp className="size-8 text-emerald-400/80" />
             </Card>
 
             {/* Atalho de Lançamento em Lote */}
@@ -270,7 +337,7 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
           </div>
         )}
 
-        {/* PASSO 2: Odômetro Final e Conferência de Dinheiro em Mãos */}
+        {/* PASSO 2: Odômetro e Conferência por Local (DriveCash V2) */}
         {passo === 2 && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -299,64 +366,129 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
               />
             </div>
 
-            {/* Conferência Física de Caixa */}
+            {/* CONFERÊNCIA OBRIGATÓRIA: BOLSO (Dinheiro em Mãos) */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wide text-texto-2">
-                  Conferência do dinheiro em mãos
+                <label className="text-xs font-bold uppercase tracking-wider text-texto-2 flex items-center gap-1.5">
+                  <Wallet className="size-4 text-emerald-400" />
+                  Conferência do Bolso (Dinheiro Físico)
                 </label>
                 <button
                   type="button"
                   onClick={() => {
-                    setConferenciaPulada(!conferenciaPulada);
-                    if (!conferenciaPulada) setSaldoInformadoCentavos(null);
+                    setConferenciaBolsoPulada(!conferenciaBolsoPulada);
+                    if (!conferenciaBolsoPulada && localBolso) {
+                      setSaldosInformados((prev) => ({ ...prev, [localBolso.id]: null }));
+                    }
                   }}
                   className="text-xs text-laranja-400 hover:underline"
                 >
-                  {conferenciaPulada ? 'Conferir valor real' : 'Pular conferência'}
+                  {conferenciaBolsoPulada ? 'Conferir valor real' : 'Pular conferência'}
                 </button>
               </div>
 
-              {!conferenciaPulada ? (
+              {!conferenciaBolsoPulada && localBolso ? (
                 <>
                   <MoneyInput
-                    rotulo="Dinheiro total em mãos e conta agora"
-                    valor={saldoInformadoCentavos ?? saldoCalculadoAtual}
-                    onValorChange={(v) => setSaldoInformadoCentavos(v)}
+                    rotulo="Quanto você tem no bolso agora em espécie?"
+                    valor={saldoBolsoInformado ?? saldoBolsoCalculado}
+                    onValorChange={(v) =>
+                      setSaldosInformados((prev) => ({ ...prev, [localBolso.id]: v }))
+                    }
                     grande
                   />
 
-                  {/* Feedback acolhedor da conferência (Anexo B) */}
-                  {diferencaConferencia === 0 ? (
+                  {difBolso === 0 ? (
                     <div className="p-3 bg-positivo/10 border border-positivo/30 rounded-md text-xs text-positivo flex items-center gap-2">
                       <CheckCircle2 className="size-4 shrink-0" />
-                      <span>Tudo certo! Seu caixa bateu certinho com o que você tem em mãos.</span>
+                      <span>Tudo certo! Seu bolso bate exatamente com as corridas em dinheiro registradas.</span>
                     </div>
-                  ) : diferencaConferencia > 0 ? (
+                  ) : difBolso > 0 ? (
                     <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-md text-xs text-blue-400 flex items-center gap-2">
                       <Sparkles className="size-4 shrink-0" />
                       <span>
-                        Sobrou {formatarMoeda(diferencaConferencia)}! O app ajustará seu saldo para
-                        ficar igual ao seu bolso.
+                        Sobra de {formatarMoeda(difBolso)}! O app registrará o ajuste para bater com seu bolso.
                       </span>
                     </div>
                   ) : (
                     <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-md text-xs text-amber-400 flex items-center gap-2">
                       <AlertCircle className="size-4 shrink-0" />
                       <span>
-                        Faltam {formatarMoeda(Math.abs(diferencaConferencia))}. O app registrará o
-                        ajuste para refletir a realidade.
+                        Faltam {formatarMoeda(Math.abs(difBolso))}. O app registrará o ajuste para refletir a realidade.
                       </span>
                     </div>
                   )}
                 </>
               ) : (
                 <div className="p-3 bg-bg-2 border border-line/60 rounded-md text-xs text-texto-3">
-                  Conferência pulada. O app usará o saldo calculado de{' '}
-                  <strong className="text-texto-1">{formatarMoeda(saldoCalculadoAtual)}</strong>.
+                  Conferência do bolso pulada. O saldo calculado de{' '}
+                  <strong className="text-texto-1">{formatarMoeda(saldoBolsoCalculado)}</strong> será mantido.
                 </div>
               )}
             </div>
+
+            {/* CONFERÊNCIA OPCIONAL: APP 99 E BANCOS */}
+            {outrosLocais.length > 0 && (
+              <div className="pt-2 border-t border-line/50">
+                <button
+                  type="button"
+                  onClick={() => setOutrosLocaisAbertos(!outrosLocaisAbertos)}
+                  className="flex items-center justify-between w-full p-2.5 rounded-md bg-bg-2 border border-line/60 text-xs font-bold text-texto-2 hover:text-texto-1 transition-all"
+                >
+                  <span className="flex items-center gap-2">
+                    <Building2 className="size-4 text-laranja-400" />
+                    Conferir outros locais: App 99 e Bancos (Opcional)
+                  </span>
+                  {outrosLocaisAbertos ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                </button>
+
+                {outrosLocaisAbertos && (
+                  <div className="space-y-3 mt-3 p-3 bg-bg-1 rounded-lg border border-line/60">
+                    <p className="text-[11px] text-texto-3">
+                      Se você viu o saldo no app da 99 ou nos seus bancos e quiser conciliar agora, digite o valor abaixo:
+                    </p>
+
+                    {outrosLocais.map((loc) => {
+                      const valInf = saldosInformados[loc.id];
+                      const valCalc = loc.saldo_centavos ?? 0;
+                      const dif = valInf !== undefined && valInf !== null ? valInf - valCalc : 0;
+
+                      return (
+                        <div key={loc.id} className="p-2.5 rounded bg-bg-2 border border-line/40 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-texto-1 flex items-center gap-1.5">
+                              {loc.tipo === 'app' ? (
+                                <Smartphone className="size-3.5 text-amber-400" />
+                              ) : (
+                                <Building2 className="size-3.5 text-blue-400" />
+                              )}
+                              {loc.nome}
+                            </span>
+                            <span className="text-[11px] text-texto-3 font-mono">
+                              Calculado: {formatarMoeda(valCalc)}
+                            </span>
+                          </div>
+
+                          <MoneyInput
+                            rotulo="Saldo visto no extrato/app"
+                            valor={valInf ?? valCalc}
+                            onValorChange={(v) =>
+                              setSaldosInformados((prev) => ({ ...prev, [loc.id]: v }))
+                            }
+                          />
+
+                          {dif !== 0 && (
+                            <span className={`text-[10px] font-bold block ${dif > 0 ? 'text-blue-400' : 'text-amber-400'}`}>
+                              {dif > 0 ? `Sobra de ${formatarMoeda(dif)}` : `Falta de ${formatarMoeda(Math.abs(dif))}`} no fechamento
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="pt-4 flex gap-2">
               <Button
@@ -379,24 +511,19 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
           </div>
         )}
 
-        {/* PASSO 3: Reserva de Manutenção */}
+        {/* PASSO 3: Depósito na Reserva de Manutenção */}
         {passo === 3 && (
           <div className="space-y-4">
-            <Card className="p-4 bg-bg-2 border-line/60 space-y-2">
-              <div className="flex items-center gap-2 text-texto-2">
-                <ShieldCheck className="size-5 text-laranja-400" />
-                <span className="font-bold text-sm text-texto-1">Reserva para Manutenção</span>
+            <Card className="p-4 bg-bg-2 border-line/60 flex items-center gap-3">
+              <div className="p-2.5 rounded-full bg-laranja-500/10 text-laranja-400 shrink-0">
+                <ShieldCheck className="size-6" />
               </div>
-              <p className="text-xs text-texto-3">
-                Guardar um valor diário garante que você tenha dinheiro reservado para troca de óleo,
-                pneus e mecânico sem surpresas.
-              </p>
-              <p className="text-xs text-texto-2 pt-1">
-                Saldo atual guardado:{' '}
-                <strong className="text-positivo font-mono">
-                  {formatarMoeda(saldoManutencao)}
-                </strong>
-              </p>
+              <div className="space-y-0.5">
+                <h4 className="font-bold text-sm text-texto-1">Proteja seu Carro</h4>
+                <p className="text-xs text-texto-3">
+                  Guardar um pouco todo dia evita desespero em troca de óleo, pneus ou oficinas.
+                </p>
+              </div>
             </Card>
 
             <div className="space-y-3">
@@ -483,34 +610,77 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
           </div>
         )}
 
-        {/* PASSO 4: Confirmação e Tela Final */}
+        {/* PASSO 4: Confirmação e Tela Final V2 */}
         {passo === 4 && (
           <div className="space-y-4">
             <Card className="p-4 bg-bg-2 border-line/60 space-y-3">
               <h4 className="font-bold text-sm text-texto-1 flex items-center gap-2">
                 <Check className="size-4 text-laranja-400" />
-                Resumo Consolidado do Dia
+                Resumo Consolidado do Fechamento V2
               </h4>
 
               <div className="space-y-2 text-xs divide-y divide-line/40">
                 <div className="flex justify-between pt-1">
-                  <span className="text-texto-3">Receita Bruta:</span>
+                  <span className="text-texto-3">Faturamento Bruto:</span>
                   <span className="font-semibold text-positivo font-mono">
-                    {formatarMoeda(receita)}
+                    {formatarMoeda(ganhoBruto)}
                   </span>
                 </div>
+                {totalTaxas > 0 && (
+                  <div className="flex justify-between pt-2">
+                    <span className="text-texto-3">
+                      Taxas (Plataforma + Maquininha):
+                    </span>
+                    <span className="font-semibold text-amber-400 font-mono">
+                      −{formatarMoeda(totalTaxas)} ({taxaEfetivaPct.toFixed(1)}%)
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-2">
-                  <span className="text-texto-3">Despesas do Dia:</span>
-                  <span className="font-semibold text-negativo font-mono">
-                    {formatarMoeda(despesas)}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-2">
-                  <span className="text-texto-3">Lucro Líquido:</span>
+                  <span className="text-texto-3 font-bold text-texto-2">Ganho Líquido:</span>
                   <span className="font-bold text-texto-1 font-mono">
+                    {formatarMoeda(ganhoLiquido)}
+                  </span>
+                </div>
+                {despesasOperacionais > 0 && (
+                  <div className="flex justify-between pt-2">
+                    <span className="text-texto-3">Despesas Operacionais:</span>
+                    <span className="font-semibold text-negativo font-mono">
+                      −{formatarMoeda(despesasOperacionais)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2">
+                  <span className="text-texto-3 font-bold text-texto-2">Lucro Final do Turno:</span>
+                  <span className="font-black text-positivo font-mono text-sm">
                     {formatarMoeda(lucroCalculado)}
                   </span>
                 </div>
+
+                {/* Métricas de Rendimento */}
+                {(ganhoPorHoraLiquido || lucroPorKm) && (
+                  <div className="grid grid-cols-2 gap-2 pt-2 text-[11px]">
+                    {ganhoPorHoraLiquido && (
+                      <div className="p-2 rounded bg-bg-1 border border-line flex items-center gap-1.5">
+                        <Clock className="size-3.5 text-laranja-400" />
+                        <div>
+                          <span className="text-texto-3 block text-[9px] uppercase font-bold">R$/Hora Líq.</span>
+                          <span className="font-bold text-texto-1">{formatarMoeda(ganhoPorHoraLiquido)}/h</span>
+                        </div>
+                      </div>
+                    )}
+                    {lucroPorKm && (
+                      <div className="p-2 rounded bg-bg-1 border border-line flex items-center gap-1.5">
+                        <Gauge className="size-3.5 text-blue-400" />
+                        <div>
+                          <span className="text-texto-3 block text-[9px] uppercase font-bold">Lucro/KM</span>
+                          <span className="font-bold text-texto-1">{formatarMoeda(lucroPorKm)}/km</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {!manutencaoPulada && depositoManutencaoCentavos > 0 && (
                   <div className="flex justify-between pt-2">
                     <span className="text-texto-3">Guardado para Manutenção:</span>
@@ -519,16 +689,6 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between pt-2">
-                  <span className="text-texto-3">Caixa Final no Bolso:</span>
-                  <span className="font-black text-laranja-400 font-mono text-sm">
-                    {formatarMoeda(saldoFinalPrevisto)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-2.5 bg-laranja-500/10 border border-laranja-500/30 rounded-md text-[11px] text-laranja-400 text-center font-medium">
-                🌅 Amanhã você começará com {formatarMoeda(saldoFinalPrevisto)} em mãos.
               </div>
             </Card>
 
@@ -554,9 +714,9 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
                 className="flex-1"
                 onClick={handleConfirmarFechamento}
                 carregando={fechandoDia}
-                icone={<CheckCircle2 className="size-4" />}
+                icone={<Check className="size-4" />}
               >
-                Fechar o Dia
+                Confirmar Fechamento
               </Button>
             </div>
           </div>
@@ -567,92 +727,85 @@ export const FecharDiaSheet: React.FC<FecharDiaSheetProps> = ({ aberto, aoFechar
       <Modal
         aberto={modalLoteAberto}
         aoFechar={() => setModalLoteAberto(false)}
-        titulo="Lançamento em Lote por Plataforma"
-        descricao="Informe os ganhos de cada aplicativo para lançamento conjunto."
-        rodape={
-          <div className="flex gap-2 w-full sm:justify-end">
-            <Button variante="fantasma" onClick={() => setModalLoteAberto(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variante="primario"
-              onClick={handleAplicarLote}
-              carregando={salvandoLote}
-            >
-              Confirmar Lote
-            </Button>
-          </div>
-        }
+        titulo="Lançar Ganhos por Plataforma"
+        descricao="Lance os valores finais mostrados nos aplicativos antes de fechar o dia."
       >
         <div className="space-y-4">
-          {/* Seletor Somar ou Substituir */}
-          <div className="flex items-center gap-2 p-2 bg-bg-2 rounded-md border border-line/60">
-            <span className="text-xs text-texto-2 font-medium">Regra:</span>
+          <div className="flex gap-2 p-1 bg-bg-2 rounded-md border border-line">
             <button
               type="button"
-              onClick={() => setModoLote('somar')}
-              className={`flex-1 py-1 text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-1.5 text-xs font-bold rounded transition-colors ${
                 modoLote === 'somar'
-                  ? 'bg-laranja-500/20 text-laranja-400 border border-laranja-500/50'
+                  ? 'bg-laranja-500 text-white'
                   : 'text-texto-3 hover:text-texto-1'
               }`}
+              onClick={() => setModoLote('somar')}
             >
-              Somar com anteriores
+              Somar aos já lançados
             </button>
             <button
               type="button"
-              onClick={() => setModoLote('substituir')}
-              className={`flex-1 py-1 text-xs font-bold rounded transition-all ${
+              className={`flex-1 py-1.5 text-xs font-bold rounded transition-colors ${
                 modoLote === 'substituir'
-                  ? 'bg-negativo/20 text-negativo border border-negativo/50'
+                  ? 'bg-laranja-500 text-white'
                   : 'text-texto-3 hover:text-texto-1'
               }`}
+              onClick={() => setModoLote('substituir')}
             >
-              Substituir anteriores
+              Substituir existentes
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
             {plataformas?.map((plat) => {
-              const info = valoresPlataforma[plat.id] || { valor: 0, corridas: 1 };
+              const info = valoresPlataforma[plat.id] || { valor: 0, corridas: 0 };
               return (
-                <div key={plat.id} className="p-3 bg-bg-2 rounded-md border border-line/60 space-y-2">
+                <div key={plat.id} className="p-3 bg-bg-2 rounded-md border border-line space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-texto-1 flex items-center gap-1.5">
-                      <span className="size-2 rounded-full" style={{ backgroundColor: plat.cor }} />
+                    <span className="font-bold text-xs text-texto-1 flex items-center gap-2">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: plat.cor || '#ff7a00' }}
+                      />
                       {plat.nome}
                     </span>
-                    <div className="flex items-center gap-1 text-xs text-texto-3">
-                      <span>Corridas:</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={info.corridas}
-                        onChange={(e) => {
-                          const c = parseInt(e.target.value, 10) || 1;
-                          setValoresPlataforma((prev) => ({
-                            ...prev,
-                            [plat.id]: { ...info, corridas: c },
-                          }));
-                        }}
-                        className="w-12 h-6 text-center bg-bg-3 border border-line/60 rounded text-texto-1 text-xs"
-                      />
-                    </div>
                   </div>
-
-                  <MoneyInput
-                    rotulo=""
-                    valor={info.valor}
-                    onValorChange={(v) => {
-                      setValoresPlataforma((prev) => ({
-                        ...prev,
-                        [plat.id]: { ...info, valor: v },
-                      }));
-                    }}
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <MoneyInput
+                      rotulo="Valor total"
+                      valor={info.valor}
+                      onValorChange={(v) =>
+                        setValoresPlataforma((prev) => ({
+                          ...prev,
+                          [plat.id]: { ...info, valor: v },
+                        }))
+                      }
+                    />
+                    <Input
+                      rotulo="Nº de Corridas"
+                      type="number"
+                      placeholder="Ex: 12"
+                      value={info.corridas || ''}
+                      onChange={(e) =>
+                        setValoresPlataforma((prev) => ({
+                          ...prev,
+                          [plat.id]: { ...info, corridas: parseInt(e.target.value, 10) || 0 },
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
               );
             })}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-line">
+            <Button variante="fantasma" onClick={() => setModalLoteAberto(false)} disabled={salvandoLote}>
+              Cancelar
+            </Button>
+            <Button variante="primario" onClick={handleAplicarLote} carregando={salvandoLote}>
+              Salvar Plataformas
+            </Button>
           </div>
         </div>
       </Modal>
