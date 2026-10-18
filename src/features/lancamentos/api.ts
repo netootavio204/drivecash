@@ -97,6 +97,30 @@ export function useLancamentosDia(diaId?: string | null) {
   });
 }
 
+async function sincronizarAposMutacaoLancamento(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId?: string
+) {
+  queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
+  queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
+  queryClient.invalidateQueries({ queryKey: ['dia'] });
+
+  try {
+    await supabase.rpc('rpc_atualizar_metas');
+  } catch (err) {
+    console.warn('[DriveCash] Aviso ao rodar rpc_atualizar_metas:', err);
+  }
+
+  queryClient.invalidateQueries({ queryKey: ['metas'] });
+  queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
+  queryClient.invalidateQueries({ queryKey: ['conquistas'] });
+  queryClient.invalidateQueries({ queryKey: ['fases'] });
+
+  if (userId) {
+    void executarAvaliacaoConquistas(userId);
+  }
+}
+
 /** Hook para criar um lançamento */
 export function useCriarLancamento() {
   const queryClient = useQueryClient();
@@ -178,16 +202,8 @@ export function useCriarLancamento() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
-      queryClient.invalidateQueries({ queryKey: ['metas'] });
-      queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
-      queryClient.invalidateQueries({ queryKey: ['conquistas'] });
-      queryClient.invalidateQueries({ queryKey: ['fases'] });
-      void supabase.rpc('rpc_atualizar_metas');
-      if (user) void executarAvaliacaoConquistas(user.id);
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -268,16 +284,8 @@ export function useCriarLancamentosEmLote() {
       if (error) throw error;
       return data || [];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
-      queryClient.invalidateQueries({ queryKey: ['metas'] });
-      queryClient.invalidateQueries({ queryKey: ['gamificacao'] });
-      queryClient.invalidateQueries({ queryKey: ['conquistas'] });
-      queryClient.invalidateQueries({ queryKey: ['fases'] });
-      void supabase.rpc('rpc_atualizar_metas');
-      if (user) void executarAvaliacaoConquistas(user.id);
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -322,10 +330,8 @@ export function useEditarLancamento() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -354,10 +360,8 @@ export function useExcluirLancamento() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }
@@ -384,10 +388,8 @@ export function useDesfazerExclusao() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lancamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['caixas', 'saldos'] });
-      queryClient.invalidateQueries({ queryKey: ['dia'] });
+    onSuccess: async () => {
+      await sincronizarAposMutacaoLancamento(queryClient, user?.id);
     },
   });
 }

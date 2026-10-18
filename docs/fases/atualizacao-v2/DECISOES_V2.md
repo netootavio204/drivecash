@@ -40,6 +40,14 @@
 | 2026-10-18 | V2.1 | Autorizada leitura de dados reais em modo somente leitura para auditoria (contagem de corridas divididas e locais) | Resposta do dono (Rodada 1) |
 | 2026-10-18 | V2.1 | Digita o valor total do recibo; taxa da 99 será campo opcional | Resposta do dono (Rodada 2) |
 | 2026-10-18 | V2.1 | Prioridade definida: Metas/topo -> Locais -> Corrida em partes -> Taxas -> PDF | Resposta do dono (Rodada 4) |
+| 2026-10-18 | V2.2 | Metas em formato barra horizontal com marcos Bronze (70%), Prata (100%) e Ouro (130%) | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.2 | Exibir as 3 barras (Dia, Semana, Mês) compactas na tela Início | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.2 | Texto das barras: R$ Atual / R$ Meta com porcentagem e valor que falta pro marco | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.2 | Barra de Ações Rápidas (Intervalo e Fechar Dia) fixa no topo da tela | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.2 | Botões do topo confortáveis e fáceis de tocar (≥ 48px) | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.2 | Tipos de intervalo: Descanso, Refeição, Abastecimento e Outro | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.2 | Permitido lançar corrida mesmo em intervalo (com aviso discreto) | Resposta do dono (Fase V2.2) |
+| 2026-10-18 | V2.2 | Lembrete automático de intervalo desligado | Resposta do dono (Fase V2.2) |
 
 ## Mudanças em relação ao PRD v2
 | Data | Fase | O que mudou | Motivo |

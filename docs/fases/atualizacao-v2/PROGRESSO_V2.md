@@ -5,19 +5,19 @@
 ## Status das fases
 | Fase | Conteúdo | Status | Em produção desde | Aprovada em |
 |---|---|---|---|---|
-| V2.1 | Auditoria, backup e rede de segurança | 🟡 pronta para aprovação | — | — |
-| V2.2 | Barras de meta, botões no topo e Intervalo | ⏳ não iniciada | — | — |
+| V2.1 | Auditoria, backup e rede de segurança | ✅ concluída | 2026-10-18 | 2026-10-18 |
+| V2.2 | Barras de meta, botões no topo e Intervalo | 🟡 pronta para aprovação | — | — |
 | V2.3 | Locais do dinheiro: bolso, app 99 e bancos | ⏳ não iniciada | — | — |
 | V2.4 | Corrida única com pagamento em partes | ⏳ não iniciada | — | — |
 | V2.5 | Taxas, ganho líquido e fechamento v2 | ⏳ não iniciada | — | — |
 | V2.6 | Relatório PDF, publicação e APK | ⏳ não iniciada | — | — |
 
 ## Rede de segurança (preencher na V2.1)
-- Tag `pre-v2`: Criada e registrada · Branch `v2-atualizacao` e `v2-fase-1-auditoria`: Ativas
+- Tag `pre-v2`: Criada e registrada · Branch `v2-atualizacao` e `v2-fase-2-correcoes`: Ativas
 - Backup do banco: Guia de exportação documentado em AUDITORIA_V2.md
-- Migração de segurança: `supabase/migrations/0101_flags_e_backup.sql` pronta
-- Suíte de testes: 43 testes aprovados (100% verde)
-- Hook de chaves liga/desliga: `src/lib/useRecursos.ts` implementado (todas as chaves desligadas)
+- Migrações preparadas: `0101_flags_e_backup.sql` e `0102_intervalos.sql`
+- Suíte de testes: 47 testes aprovados (100% verde)
+- Hook de chaves liga/desliga: `src/lib/useRecursos.ts` implementado
 
 ## Chaves liga/desliga (estado em produção)
 | Chave | Estado | Ligada em |
@@ -33,10 +33,13 @@
 - Servidor de desenvolvimento: `npm run dev`
 
 ## O que já foi alterado
-- Criada migração `0101_flags_e_backup.sql`
-- Criado módulo `src/lib/recursos.ts` e hook `src/lib/useRecursos.ts`
-- Criado teste `src/features/metas/bug01_metas.test.ts`
-- Criado relatório detalhado [AUDITORIA_V2.md](file:///d:/Sistemas%20em%20vibecode/PROJETO%20MOTORISTA/docs/fases/atualizacao-v2/AUDITORIA_V2.md)
+- Criado componente `BarraMetaV2` com preenchimento contínuo, marcos 🥉🥈🥇 e precisão decimal (BUG-01 corrigido)
+- Integrado card das 3 metas compactas (Dia, Semana, Mês) na tela Início
+- Criada barra fixa no topo `TopoAcoesRapidas` com Intervalo e Fechar Dia (com alvos amplos ≥ 48px)
+- Removidos botões inferiores redundantes de Fechar Dia e Intervalo do rodapé
+- Criada migração `0102_intervalos.sql` e cálculo de tempo trabalhado líquido em `calcularTempoLiquido`
+- Eliminada condição de corrida na sincronização de metas em `src/features/lancamentos/api.ts`
+- 47 testes unitários 100% verdes (`npm test`) e build de produção validado (`npm run build`)
 
 ## Decisões importantes
 - Metas/topo prioritárias;

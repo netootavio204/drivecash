@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
-import { RecursosV2, RECURSOS_PADRAO, normalizarRecursos } from './recursos';
+import type { RecursosV2 } from './recursos';
+import { RECURSOS_PADRAO, normalizarRecursos } from './recursos';
 
 /**
  * Hook para obter o estado das chaves liga/desliga de recursos da V2
@@ -15,8 +16,7 @@ export function useRecursos() {
     queryFn: async (): Promise<RecursosV2> => {
       if (!user) return RECURSOS_PADRAO;
 
-      const { data, error } = await supabase
-        .from('configuracoes')
+      const { data, error } = await (supabase.from('configuracoes') as any)
         .select('recursos')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -42,8 +42,7 @@ export function useRecursos() {
         ...novosRecursos,
       };
 
-      const { error } = await supabase
-        .from('configuracoes')
+      const { error } = await (supabase.from('configuracoes') as any)
         .update({ recursos: recursosAtualizados })
         .eq('user_id', user.id);
 

@@ -11,8 +11,6 @@ import {
   RotateCcw,
   CheckSquare,
   ShieldAlert,
-  Coffee,
-  Play,
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -23,10 +21,6 @@ import {
   useResumoDia,
   useUltimoDiaFechado,
   useReabrirDia,
-  usePausarDia,
-  useRetomarDia,
-  estaEmPausa,
-  calcularMinutosPausa,
 } from '@/features/dia/api';
 import { useSaldoPrincipal, useSaldoManutencao } from '@/features/caixa/api';
 import { useLancamentosDia } from '@/features/lancamentos/api';
@@ -36,8 +30,9 @@ import {
   useMetas,
   useCiclosMetas,
 } from '@/features/metas/api';
-import { Medalha } from '@/components/gamificacao/Medalha';
 import { Star, Target } from 'lucide-react';
+import { TopoAcoesRapidas } from '@/components/layout/TopoAcoesRapidas';
+import { BarraMetaV2 } from '@/features/metas/BarraMetaV2';
 import { AbrirDiaSheet } from '@/features/dia/AbrirDiaSheet';
 import { FecharDiaSheet } from '@/features/dia/FecharDiaSheet';
 import { EntradaRapidaSheet } from '@/features/lancamentos/EntradaRapidaSheet';
@@ -58,35 +53,10 @@ export function InicioPage() {
   const { data: ultimoFechado } = useUltimoDiaFechado();
   const { data: prioridades = [] } = usePrioridades();
   const { mutateAsync: reabrirDia, isPending: reabrindoDia } = useReabrirDia();
-  const { mutateAsync: pausarDia, isPending: pausandoDia } = usePausarDia();
-  const { mutateAsync: retomarDia, isPending: retomandoDia } = useRetomarDia();
 
   const { saldoCentavos: caixaAtual, isLoading: carregandoSaldo } = useSaldoPrincipal();
   const { saldoCentavos: saldoReserva } = useSaldoManutencao();
   const { data: lancamentos = [], isLoading: carregandoLancamentos } = useLancamentosDia(diaAtual?.id);
-
-  const emPausa = estaEmPausa(diaAtual);
-  const minutosPausa = calcularMinutosPausa(diaAtual);
-
-  const handlePausar = async () => {
-    if (!diaAtual?.id) return;
-    try {
-      await pausarDia({ diaId: diaAtual.id, motivo: 'intervalo' });
-      toast.info('Dia pausado para intervalo. Bom descanso!');
-    } catch (err) {
-      toast.erro(traduzirErro(err));
-    }
-  };
-
-  const handleRetomar = async () => {
-    if (!diaAtual?.id) return;
-    try {
-      await retomarDia({ diaId: diaAtual.id });
-      toast.sucesso('Rodagem retomada! Boas corridas!');
-    } catch (err) {
-      toast.erro(traduzirErro(err));
-    }
-  };
 
   // Gamificação e Metas (Fase 5)
   const { data: gamificacao } = useGamificacaoUsuario();
@@ -96,10 +66,11 @@ export function InicioPage() {
   const metaDiaria = metas.find((m) => m.periodo === 'diaria');
   const cicloDiario = metaDiaria ? ciclos.find((c) => c.meta_id === metaDiaria.id) : null;
 
-  const alvoDiario = metaDiaria?.valor_alvo ?? 30000;
-  const alcancadoDiario = cicloDiario?.valor_alcancado ?? 0;
-  const pctMetaDiaria = Math.min(150, Math.round((alcancadoDiario / Math.max(1, alvoDiario)) * 100));
-  const medalhaDiaria = cicloDiario?.nivel_atual ?? 'nenhum';
+  const metaSemanal = metas.find((m) => m.periodo === 'semanal');
+  const cicloSemanal = metaSemanal ? ciclos.find((c) => c.meta_id === metaSemanal.id) : null;
+
+  const metaMensal = metas.find((m) => m.periodo === 'mensal');
+  const cicloMensal = metaMensal ? ciclos.find((c) => c.meta_id === metaMensal.id) : null;
 
   // Sheets de controle
   const [sheetAbrirDia, setSheetAbrirDia] = useState<boolean>(false);
@@ -140,7 +111,14 @@ export function InicioPage() {
 
   return (
     <div className="space-y-6">
-      {/* Barra superior de status do motorista & Gamificação */}
+      {/* Barra de Ações Rápidas Fixa no Topo (DriveCash V2) */}
+      <TopoAcoesRapidas
+        diaAtual={diaAtual ?? null}
+        aoAbrirDia={() => setSheetAbrirDia(true)}
+        aoFecharDia={() => setSheetFecharDia(true)}
+      />
+
+      {/* Barra de status de gamificação do motorista */}
       <div className="flex items-center justify-between gap-3 p-3 rounded-md bg-bg-2 border border-line">
         <div className="flex items-center gap-2">
           <button
@@ -165,41 +143,18 @@ export function InicioPage() {
             Olá, {profile?.nome || 'Motorista'}!
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs font-bold text-texto-2">
-          <span className={emPausa ? 'text-amber-400 font-extrabold flex items-center gap-1' : 'text-laranja-400'}>
-            {!temDiaAberto ? '⚪ Dia Fechado' : emPausa ? '☕ Em Intervalo' : '🟢 Dia Aberto'}
-          </span>
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/metas')}
+          className="text-xs font-bold text-laranja-400 hover:underline flex items-center gap-1"
+        >
+          <Target className="size-3.5" />
+          <span>Ver Metas</span>
+        </button>
       </div>
 
       {temDiaAberto ? (
         <>
-          {/* Card de Dia em Pausa / Intervalo */}
-          {emPausa && (
-            <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-500/40 text-texto-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md animate-pulse">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-                  <Coffee className="size-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-amber-400">Jornada em Intervalo / Pausa</h4>
-                  <p className="text-xs text-texto-2">
-                    Aproveite seu descanso ou almoço. Total acumulado em pausas hoje: <strong className="text-texto-1">{minutosPausa} min</strong>.
-                  </p>
-                </div>
-              </div>
-              <Button
-                variante="primario"
-                tamanho="md"
-                icone={<Play className="size-4 fill-white" />}
-                onClick={handleRetomar}
-                carregando={retomandoDia}
-                className="w-full sm:w-auto shrink-0 shadow-neon font-bold"
-              >
-                Retomar Rodagem
-              </Button>
-            </div>
-          )}
           {/* Alerta Discreto de Caixa Negativo (se houver) */}
           {caixaNegativo && (
             <div className="p-3 rounded-md bg-negativo/15 border border-negativo/40 text-negativo text-xs flex items-center justify-between gap-2 shadow-sm">
@@ -282,38 +237,54 @@ export function InicioPage() {
             <StatCard rotulo="Reserva Manut." centavos={saldoReserva} tom="neutro" />
           </div>
 
-          {/* Card Compacto de Meta Diária (Fase 5) */}
+          {/* Card das 3 Metas Compactas (Dia, Semana, Mês) — DriveCash V2 */}
           <Card
-            className="p-4 bg-bg-2 border-line/60 hover:border-laranja-500/40 transition-all cursor-pointer space-y-3"
+            className="p-4 bg-bg-2 border-line/60 hover:border-laranja-500/40 transition-all cursor-pointer space-y-3.5 shadow-sm"
             onClick={() => navigate('/metas')}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-line/40 pb-2">
               <div className="flex items-center gap-2">
                 <Target className="size-4 text-laranja-400" />
-                <h3 className="font-bold text-sm text-texto-1">Meta do Dia</h3>
+                <h3 className="font-bold text-sm text-texto-1">Seu Progresso de Metas</h3>
               </div>
-              <div className="flex items-center gap-2">
-                <Medalha nivel={medalhaDiaria} tamanho="sm" />
-                <span className="text-xs font-bold text-laranja-400 hover:underline flex items-center gap-0.5">
-                  Ver detalhes <ChevronRight className="size-3.5" />
-                </span>
-              </div>
+              <span className="text-xs font-bold text-laranja-400 hover:underline flex items-center gap-0.5">
+                Ver detalhes <ChevronRight className="size-3.5" />
+              </span>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-texto-3">
-                  Progresso: <strong className="text-texto-1 font-mono">{formatarMoeda(alcancadoDiario)}</strong> / {formatarMoeda(alvoDiario)}
-                </span>
-                <span className="font-mono font-bold text-laranja-400">{pctMetaDiaria}%</span>
-              </div>
+            <div className="space-y-3">
+              {/* Meta Diária */}
+              <BarraMetaV2
+                titulo="Meta do Dia"
+                valorAlvo={metaDiaria?.valor_alvo ?? 30000}
+                valorAlcancado={cicloDiario?.valor_alcancado ?? 0}
+                pctBronze={metaDiaria?.pct_bronze ?? 70}
+                pctPrata={metaDiaria?.pct_prata ?? 100}
+                pctOuro={metaDiaria?.pct_ouro ?? 130}
+                compacto
+              />
 
-              <div className="h-2 w-full bg-bg-3 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-laranja-500 to-amber-400 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, pctMetaDiaria)}%` }}
-                />
-              </div>
+              {/* Meta Semanal */}
+              <BarraMetaV2
+                titulo="Meta da Semana"
+                valorAlvo={metaSemanal?.valor_alvo ?? 180000}
+                valorAlcancado={cicloSemanal?.valor_alcancado ?? 0}
+                pctBronze={metaSemanal?.pct_bronze ?? 70}
+                pctPrata={metaSemanal?.pct_prata ?? 100}
+                pctOuro={metaSemanal?.pct_ouro ?? 130}
+                compacto
+              />
+
+              {/* Meta Mensal */}
+              <BarraMetaV2
+                titulo="Meta do Mês"
+                valorAlvo={metaMensal?.valor_alvo ?? 750000}
+                valorAlcancado={cicloMensal?.valor_alcancado ?? 0}
+                pctBronze={metaMensal?.pct_bronze ?? 70}
+                pctPrata={metaMensal?.pct_prata ?? 100}
+                pctOuro={metaMensal?.pct_ouro ?? 130}
+                compacto
+              />
             </div>
           </Card>
 
@@ -383,40 +354,6 @@ export function InicioPage() {
             </Card>
           )}
 
-          {/* Ações de Fechamento ou Pausa da Jornada */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            {!emPausa ? (
-              <Button
-                variante="secundario"
-                tamanho="lg"
-                icone={<Coffee className="size-4 text-amber-400" />}
-                onClick={handlePausar}
-                carregando={pausandoDia}
-                className="font-bold border-line/80 hover:border-amber-500/50"
-              >
-                PAUSAR DIA (INTERVALO)
-              </Button>
-            ) : (
-              <Button
-                variante="primario"
-                tamanho="lg"
-                icone={<Play className="size-4 fill-white" />}
-                onClick={handleRetomar}
-                carregando={retomandoDia}
-                className="shadow-neon font-bold"
-              >
-                RETOMAR RODAGEM
-              </Button>
-            )}
-
-            <Button
-              variante="secundario"
-              tamanho="lg"
-              onClick={() => setSheetFecharDia(true)}
-            >
-              FECHAR O DIA
-            </Button>
-          </div>
         </>
       ) : (
         /* Estado com dia fechado / Pronto para Bater Ponto */

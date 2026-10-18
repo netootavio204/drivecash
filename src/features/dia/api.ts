@@ -570,6 +570,34 @@ export function calcularMinutosPausa(dia?: DiaTrabalho | null): number {
   return Math.round(totalMs / 60000);
 }
 
+/** Calcula o tempo líquido trabalhado (descontando as pausas) */
+export function calcularTempoLiquido(dia?: DiaTrabalho | null): {
+  minutosTotais: number;
+  minutosPausa: number;
+  minutosLiquidos: number;
+  horasFormatadas: string;
+} {
+  if (!dia) {
+    return { minutosTotais: 0, minutosPausa: 0, minutosLiquidos: 0, horasFormatadas: '0h00' };
+  }
+
+  const ini = new Date(dia.aberto_em).getTime();
+  const fim = dia.fechado_em ? new Date(dia.fechado_em).getTime() : Date.now();
+  const minutosTotais = isNaN(ini) ? 0 : Math.max(0, Math.round((fim - ini) / 60000));
+  const minutosPausa = calcularMinutosPausa(dia);
+  const minutosLiquidos = Math.max(0, minutosTotais - minutosPausa);
+
+  const horas = Math.floor(minutosLiquidos / 60);
+  const mins = minutosLiquidos % 60;
+
+  return {
+    minutosTotais,
+    minutosPausa,
+    minutosLiquidos,
+    horasFormatadas: `${horas}h${mins.toString().padStart(2, '0')}`,
+  };
+}
+
 /** Hook para iniciar uma pausa/intervalo no dia de trabalho */
 export function usePausarDia() {
   const queryClient = useQueryClient();
@@ -578,6 +606,19 @@ export function usePausarDia() {
   return useMutation({
     mutationFn: async ({ diaId, motivo }: { diaId: string; motivo?: string }) => {
       if (!user) throw new Error('NAO_AUTENTICADO');
+
+      // Tenta via RPC se a migração 0102 estiver ativa
+      try {
+        const { error: rpcErr } = await (supabase.rpc as any)('rpc_iniciar_intervalo', {
+          p_dia_id: diaId,
+          p_tipo: motivo || 'descanso',
+        });
+        if (!rpcErr) {
+          return { ok: true };
+        }
+      } catch (e) {
+        // Fallback para armazenamento em JSON no dia
+      }
 
       const { data: dia, error: errGet } = await supabase
         .from('dias_trabalho')
@@ -596,7 +637,7 @@ export function usePausarDia() {
         pausasAtuais.push({
           inicio: new Date().toISOString(),
           fim: null,
-          motivo: motivo || 'intervalo',
+          motivo: motivo || 'descanso',
         });
       }
 
@@ -627,6 +668,18 @@ export function useRetomarDia() {
   return useMutation({
     mutationFn: async ({ diaId }: { diaId: string }) => {
       if (!user) throw new Error('NAO_AUTENTICADO');
+
+      // Tenta via RPC se a migração 0102 estiver ativa
+      try {
+        const { error: rpcErr } = await (supabase.rpc as any)('rpc_encerrar_intervalo', {
+          p_dia_id: diaId,
+        });
+        if (!rpcErr) {
+          return { ok: true };
+        }
+      } catch (e) {
+        // Fallback para armazenamento em JSON no dia
+      }
 
       const { data: dia, error: errGet } = await supabase
         .from('dias_trabalho')
